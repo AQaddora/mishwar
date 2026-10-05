@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
+import { TabBar, type TabRole } from "@/components/TabBar";
+import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,10 +25,17 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const user = await getCurrentUser();
+  // A signed-in user with no role yet is sent to /welcome by each page; rider tabs until then.
+  const role: TabRole = user ? (user.role ?? "rider") : "guest";
+
   return (
     <html lang="ar" dir="rtl">
-      <body>{children}</body>
+      <body>
+        {children}
+        <TabBar role={role} />
+      </body>
     </html>
   );
 }
