@@ -9,4 +9,4 @@ if (!response.ok) {
   process.exit(1);
 }
 const removed = await response.json();
-console.log(`removed from ${base}: ${removed.users} simulated users (${removed.vehicles} vehicles, ${removed.routes} routes, ${removed.trips} trips, and everything else that was theirs)`);
+console.log(`removed from ${base}: ${removed.users} simulated users (${removed.vehicles} vehicles, ${removed.routes} routes, ${removed.trips} trips, ${removed.bookings ?? 0} bookings, and everything else that was theirs)`);

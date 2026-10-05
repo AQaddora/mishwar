@@ -1,21 +1,6 @@
 // A guest and the riders look for a ride: the home map with the running vehicles, a
-// vehicle's sheet, then a search for each journey in city.json.
-import { pickPlace } from "../lib/ui.mjs";
-
-// The routes being driven right now: the driver's week says he works today, at this
-// hour (Asia/Gaza), and his vehicle is not in maintenance. Same rule as the app's.
-function routesRunningNow(sync) {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Gaza", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).map((p) => [p.type, p.value]));
-  const weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(parts.weekday) + 1;
-  const time = `${parts.hour}:${parts.minute}`;
-  return sync.changes.routes.filter((route) => {
-    const day = sync.changes.schedule.find((d) => d.driverId === route.driverId && d.weekday === weekday);
-    const vehicle = sync.changes.vehicles.find((v) => v.driverId === route.driverId);
-    if (!day?.working || !vehicle || vehicle.maintenanceFrom) return false;
-    if (time < day.startTime || time >= day.endTime) return false;
-    return day.routeId ? day.routeId === route.id : route.isDefault;
-  });
-}
+// vehicle's sheet, then each rider asks the planner about one journey from city.json.
+import { expectedPlan, planCards, planTrip } from "../lib/ui.mjs";
 
 const riderMapSearch = {
   name: "rider-map-search",
@@ -57,19 +42,16 @@ const riderMapSearch = {
       await rider.page.getByRole("dialog").getByRole("button", { name: "سكّر" }).last().click().catch(() => {});
       rider.broken = false;
 
-      await sim.step("rider-map-search.search", rider, { title: "Rider searches from one place to another", repro: [who, "Tap «لوين رايح؟ دوّر على مشوار»", `«من وين؟»: ${from.nameAr}`, `«لوين؟»: ${to.nameAr}`], expected: "The vehicles whose route has both stops (either direction), or a plain line saying nobody is on this road now." }, async (page) => {
+      await sim.step("rider-map-search.search", rider, { title: "Rider asks how to get from one place to another", repro: [who, "Tap «لوين رايح؟ دوّر على مشوار»", `«من وين؟»: ${from.nameAr}`, `«لوين؟»: ${to.nameAr}`], expected: "Up to three options (direct, or with a change of vehicle) when routes running now connect the two places; otherwise «ما لقينا طريق…» with the hint to post a special request." }, async (page) => {
         // What the answer should be, from the same public data the phone holds.
-        const sync = await sim.api(rider, "/api/sync");
-        const direct = routesRunningNow(sync).filter((r) => r.stops.includes(from.id) && r.stops.includes(to.id)).length;
-        await page.goto(`${sim.base}/search`);
-        await pickPlace(page, () => page.getByRole("button", { name: /من وين؟/ }).click(), from.nameAr);
-        await pickPlace(page, () => page.getByRole("button", { name: /لوين؟/ }).click(), to.nameAr);
-        await page.getByRole("heading", { name: new RegExp(`من ${from.nameAr}`) }).waitFor();
-        const cards = await page.locator("section button", { hasText: /كراسي|كرسي/ }).count();
-        const none = await page.getByText(/ما في حدا/).count();
-        if (direct > 0 && cards === 0) throw new Error(`${direct} route(s) have both stops, but the search shows no vehicle`);
-        if (direct === 0 && cards > 0) throw new Error(`no route has both stops, but the search shows ${cards} vehicle(s)`);
-        if (cards === 0 && none === 0) throw new Error("no vehicle and no «ما في حدا…» line either: the result area is empty");
+        const expected = expectedPlan(await sim.api(rider, "/api/sync"), from.id, to.id);
+        await planTrip(page, sim, from, to);
+        const cards = await planCards(page).count();
+        const none = await page.getByText(/ما لقينا طريق/).count();
+        if (cards > 3) throw new Error(`the planner shows ${cards} options; it promises at most three`);
+        if (expected !== "none" && cards === 0) throw new Error(`routes running now connect the two places (${expected}), but the planner shows no option`);
+        if (expected === "none" && cards > 0) throw new Error(`no running route connects the two places, but the planner shows ${cards} option(s)`);
+        if (cards === 0 && none === 0) throw new Error("no option and no «ما لقينا طريق…» line either: the result area is empty");
       });
       rider.broken = false;
     }

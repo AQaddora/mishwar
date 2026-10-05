@@ -60,6 +60,14 @@ export class Sim {
     });
     context.setDefaultTimeout(15_000);
     context.setDefaultNavigationTimeout(30_000);
+    // The simulated phone has no dialer. In headless Chromium a tap on a tel: link starts
+    // a navigation nothing handles, and the page stops answering taps after it. So the
+    // link's own handler runs (the app records the call) but the phone call is not placed.
+    await context.addInitScript(() => {
+      document.addEventListener("click", (event) => {
+        if (event.target instanceof Element && event.target.closest('a[href^="tel:"]')) event.preventDefault();
+      });
+    });
     const page = await context.newPage();
     const person = { id, role, n, label: `${ARABIC_ROLE[role]} ${n}`, context, page, signedIn: false, broken: false, seen: newSeen() };
     page.on("pageerror", (e) => person.seen.pageErrors.push(String(e).slice(0, 300)));

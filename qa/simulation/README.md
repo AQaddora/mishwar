@@ -52,13 +52,22 @@ The command exits with 1 when any step failed.
 
 ## What is simulated
 
+The scenarios run in the order of a day in the city.
+
 | Scenario | What happens |
 |---|---|
 | `driver-setup` | Each driver signs in, saves a vehicle, adds a photo and sends it, builds a route stop by stop, sets the week, and sees «شغّال هلأ» |
 | `driving` | Each driver opens «أنا سايق» and starts a trip; the phone's GPS is set to one of his own stops |
-| `rider-map-search` | A guest sees the vehicles on the map; each rider opens a vehicle and searches one journey |
+| `rider-map-search` | A guest sees the vehicles on the map; each rider opens a vehicle and asks the planner about one journey |
+| `planner` | A guest and a rider plan a direct trip, a trip with a change of vehicle at a shared stop, and two places nothing connects |
 | `offline` | A rider reopens the app with no internet; a driver saves a change with no internet and it is sent later |
-| `planner`, `booking`, `location-share`, `special-request`, `history-rating` | Not written yet: they are listed as skipped, with the reason |
+| `booking` | Riders 1 to 4 book with driver 1 from the planner (rider 2 with no internet, rider 4 cancels). Then riders 3 and up all ask for driver 2's seats at the same moment: the first bookings win, the rest are told |
+| `location-share` | Driver 1 asks two riders where they are: one says yes (banner on his phone, his point on the driver's), one says no (the driver sees nothing) |
+| `trip` | Driver 1 calls, marks ready, cancels one rider as not ready; «ابدأ الرحلة» unlocks only when all are decided; starting ends the location sharing; ending completes the bookings. Driver 2 runs his full vehicle. Everyone else finishes the day |
+| `special-request`, `history-rating` | Not written yet: they are listed as skipped, with the reason |
+
+The full story needs at least 2 drivers and 4 riders; a change of vehicle needs 3
+drivers. With fewer, the steps that cannot happen are skipped and say why.
 
 On top of what each step checks, every step fails on a page error, an HTTP 5xx, a page
 wider than the phone, or an input under 16px (iPhone Safari zooms on those). These are
@@ -66,8 +75,10 @@ the same checks the Fleet QA screenshots make.
 
 **Real:** the app, its database, the places (OpenStreetMap ids), the taps.
 **Simulated:** the people (`sim-driver-N@mishwar.test`, `sim-rider-N@mishwar.test`,
-shown as «محاكاة-N»), their photos (a flat colour reading «صورة محاكاة») and the GPS
-(set to the exact OpenStreetMap point of a stop).
+shown as «محاكاة-N»), their photos (a flat colour reading «صورة محاكاة»), the GPS
+(set to the exact OpenStreetMap point of a stop) and the phone calls: a tap on
+«اتصل بالراكب» is recorded by the app, but the simulated phone has no dialer, so no call
+is placed. What happens when a real phone comes back from the dialer is for a hand test.
 
 ## Removing the simulated people
 
@@ -97,16 +108,17 @@ The map points will change. Two files hold all of them:
    `npm run gazetteer`) and `data/places-extra.json` (added by hand). See
    `data/README.md`.
 2. **The simulated city** is `qa/simulation/city.json`: the routes the drivers build
-   (ordered place ids), their vehicles, and the journeys the riders search. The `note`
-   next to an id is only for the reader.
+   (ordered place ids), their vehicles, the journeys the riders plan (one must be
+   direct, one must need a change, one must have no route) and who books what. The
+   `note` next to an id is only for the reader.
 
 After editing either one, run `npm test`: it names every id in `city.json` that is no
-longer in the data, and every stop whose name is not unique (the simulation picks a stop
+longer in the data, every journey whose kind the routes no longer make true, and every stop whose name is not unique (the simulation picks a stop
 by typing its name, like a person). Then run the simulation again; it starts clean.
 
 ## Adding a scenario
 
-Copy `scenarios/rider-map-search.mjs`, export `{ name, needs, run }`, and list it in
+Copy `scenarios/booking.mjs`, export `{ name, needs, run }`, and list it in
 `scenarios/index.mjs` in place of its stub from `scenarios/todo.mjs`. Inside `run`:
 
 ```js

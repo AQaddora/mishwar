@@ -19,7 +19,7 @@ const driverSetup = {
       await sim.step("driver-setup.sign-in", driver, { title: "Driver signs in and lands on «اليوم»", repro: [who, "Open /driver"], expected: "The driver's «اليوم» screen with the four driver tabs." }, async (page) => {
         await sim.signIn(driver);
         await page.goto(`${sim.base}/driver`);
-        await page.getByRole("heading", { name: "اليوم" }).waitFor();
+        await page.getByRole("heading", { name: "اليوم", exact: true }).waitFor();
       });
 
       await sim.step("driver-setup.vehicle", driver, { title: "Driver saves the vehicle type and seats", repro: [who, "Open «سيارتي»", `Choose «${TYPE_AR[vehicle.type]}», type ${vehicle.seats} seats, tap «احفظ»`], expected: "«انحفظ» appears under the form and the values stay after a reload." }, async (page) => {

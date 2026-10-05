@@ -12,6 +12,7 @@ vi.mock("@/lib/prisma", () => ({
     vehicle: { count: db.count },
     route: { count: db.count },
     trip: { count: db.count },
+    booking: { count: db.count },
   },
 }));
 
@@ -51,6 +52,6 @@ describe("POST /api/qa-cleanup", () => {
       select: { id: true },
     });
     expect(db.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["u1", "u2"] } } });
-    expect(await res.json()).toMatchObject({ ok: true, users: 2 });
+    expect(await res.json()).toMatchObject({ ok: true, users: 2, bookings: 1 });
   });
 });

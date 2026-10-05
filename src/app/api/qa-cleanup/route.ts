@@ -16,16 +16,18 @@ export async function POST(request: Request): Promise<Response> {
   const users = await prisma.user.findMany({ where: { email: SIM_EMAIL }, select: { id: true } });
   const ids = users.map((u) => u.id);
   // Every table that belongs to a user hangs off User with ON DELETE CASCADE (vehicle,
-  // photos, routes, stops, schedule, trips, positions, outbox entries, sessions), so
-  // deleting the users removes it all. A later table that does NOT cascade from User must
+  // photos, routes, stops, schedule, trips, positions, outbox entries, sessions; bookings
+  // through their rider and through the driver's route; location shares through their
+  // booking and rider), so deleting the users removes it all. SearchLog has no user in it. A later table that does NOT cascade from User must
   // be deleted here first, before the users.
-  const [vehicles, routes, trips] = await Promise.all([
+  const [vehicles, routes, trips, bookings] = await Promise.all([
     prisma.vehicle.count({ where: { driverId: { in: ids } } }),
     prisma.route.count({ where: { driverId: { in: ids } } }),
     prisma.trip.count({ where: { driverId: { in: ids } } }),
+    prisma.booking.count({ where: { OR: [{ riderId: { in: ids } }, { driverId: { in: ids } }] } }),
   ]);
   const deleted = await prisma.user.deleteMany({ where: { id: { in: ids } } });
 
   console.log(`QA MODE: cleanup removed ${deleted.count} simulated users`);
-  return Response.json({ ok: true, users: deleted.count, vehicles, routes, trips });
+  return Response.json({ ok: true, users: deleted.count, vehicles, routes, trips, bookings });
 }
