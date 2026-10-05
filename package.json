@@ -7,7 +7,9 @@
     "build": "prisma generate && next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "prisma migrate deploy && HOSTNAME=0.0.0.0 node .next/standalone/server.js",
     "test": "vitest run",
-    "lint": "eslint"
+    "lint": "eslint",
+    "qa:seed": "prisma migrate deploy && node scripts/qa-seed.mjs",
+    "gazetteer": "node scripts/fetch-gazetteer.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

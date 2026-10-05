@@ -26,6 +26,10 @@ model User {
   createdAt     DateTime  @default(now())
   accounts      Account[]
   sessions      Session[]
+  vehicle       Vehicle?
+  routes        Route[]
+  scheduleDays  ScheduleDay[]
+  outboxEntries OutboxEntry[]
 }
 
 model Account {
@@ -58,4 +62,96 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+}
+
+enum VehicleType {
+  car
+  bus
+  ajala
+}
+
+// One vehicle per driver. Seats are whatever the driver sets.
+model Vehicle {
+  id               String      @id @default(cuid())
+  driverId         String      @unique
+  type             VehicleType
+  seats            Int
+  // Out of service from this day (YYYY-MM-DD, Asia/Gaza). Null: in service.
+  maintenanceFrom  String?
+  // Last day out of service. Null with a from-day: until the driver says it's back.
+  maintenanceUntil String?
+  updatedAt        DateTime    @updatedAt
+  driver           User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  photos           Photo[]
+}
+
+// Photos live in Postgres: the container disk is wiped on every deploy.
+// The URL carries the content hash, so a cached copy is never stale.
+model Photo {
+  id        String   @id @default(cuid())
+  vehicleId String
+  hash      String
+  mime      String
+  bytes     Bytes
+  createdAt DateTime @default(now())
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, hash])
+  @@index([hash])
+}
+
+// A driver keeps several routes; exactly one is the default. Each runs both ways.
+model Route {
+  id        String      @id
+  driverId  String
+  name      String
+  isDefault Boolean     @default(false)
+  updatedAt DateTime    @updatedAt
+  // Soft delete, so a deletion can reach phones through sync.
+  deletedAt DateTime?
+  driver    User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  stops     RouteStop[]
+  days      ScheduleDay[]
+
+  @@index([driverId])
+}
+
+// placeId is an OSM id from data/gazetteer.json, like "node/123456".
+model RouteStop {
+  routeId  String
+  position Int
+  placeId  String
+  route    Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@id([routeId, position])
+}
+
+// The weekly schedule: at most one row per weekday (ISO 1-7, Monday = 1).
+// Times are plain local times "HH:MM" in Asia/Gaza. routeId null = the default route.
+model ScheduleDay {
+  driverId  String
+  weekday   Int
+  working   Boolean
+  startTime String
+  endTime   String
+  routeId   String?
+  updatedAt DateTime @updatedAt
+  driver    User     @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  route     Route?   @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@id([driverId, weekday])
+}
+
+// Processed outbox entries. The id is the phone's idempotency key: a replay
+// returns the stored result instead of applying the write twice.
+model OutboxEntry {
+  id        String   @id
+  userId    String
+  kind      String
+  status    String
+  result    Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

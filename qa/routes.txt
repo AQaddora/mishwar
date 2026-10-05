@@ -7,6 +7,10 @@ rider /requests rider-requests
 rider /account rider-account
 driver /driver driver-today
 driver /driver/vehicle driver-vehicle
+driver /driver/vehicle?photos=now driver-vehicle-photos
 driver /driver/routes driver-routes
+driver /driver/routes/00000000-0000-4000-8000-000000000001 driver-route-stops
+driver /driver/routes/new driver-route-new
+driver /driver/schedule driver-schedule
 driver /driver/requests driver-requests
 driver /account driver-account

@@ -95,7 +95,7 @@ Approved 2026-10-05. Time box for all seven milestones: **2 hours**.
   - **See in QA screenshots:** Arabic login with one Google button; role choice; empty
     rider and driver homes with the tab bar clear of the notch.
   - **Needed from Ahmed after merge:** Google login keys for the live site.
-- [ ] **M2: Driver setup** (`m2-driver`, 20 min)
+- [x] **M2: Driver setup** (`m2-driver`, 20 min)
   - **Build:**
     - vehicle (type, seats, maintenance), photos compressed on the phone;
     - routes with ordered stops picked from OSM place names, running both ways;

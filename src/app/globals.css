@@ -93,3 +93,16 @@
     outline-offset: 2px;
   }
 }
+
+/* Sheets slide up from the bottom; still for people who ask for less motion. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@utility sheet-up {
+  animation: sheet-up 0.25s ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
