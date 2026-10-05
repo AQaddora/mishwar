@@ -99,7 +99,7 @@ npm run sim:issues                # file it (needs the gh CLI, signed in)
 
 Each failed step becomes one issue labelled `fleet-qa`, with the steps to repeat it and
 the screenshot. A failure that is already open gets a "seen again" comment instead of a
-second issue. When the step passes again, the same command closes the issue.
+second issue. When a fix for it has been merged and the step passes again, the same command closes the issue; without a merged fix it only notes that the failure did not happen (some errors come and go), and a failure that returns reopens its issue.
 
 ## Changing the city
 

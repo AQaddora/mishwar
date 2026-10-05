@@ -10,8 +10,9 @@
 //   - known and still open: one comment "seen again at <commit>" (once per commit);
 //   - new: the screenshot goes to the qa-evidence branch, and an issue is opened with
 //     the label fleet-qa, the steps to repeat it, and the picture.
-// For every step that passed for everyone: an open issue for the same step is commented
-// "verified fixed" and closed. That is the runner checking the fix.
+// For every step that passed for everyone: if a fix for its issue was merged, the issue is
+// commented "verified fixed" and closed. That is the runner checking the fix. With no
+// merged fix it stays open (some errors come and go). A failure that returns reopens it.
 //
 // Needs only the gh CLI, signed in. The repo comes from QA_REPO or `gh repo view`.
 import { execFileSync } from "node:child_process";
@@ -99,10 +100,21 @@ function main() {
   const phone = run.viewport?.name || "phone";
   const { failed, passed } = summarise(run.steps || []);
 
-  const known = JSON.parse(gh(["issue", "list", "-R", repo, "--label", LABEL, "--state", "open", "--limit", "200", "--json", "number,title,body"])).map((issue) => {
+  // Open and closed: a failure that comes back reopens its issue instead of filing a twin.
+  const known = JSON.parse(gh(["issue", "list", "-R", repo, "--label", LABEL, "--state", "all", "--limit", "300", "--json", "number,state,body"])).map((issue) => {
     const m = /<!-- fleet-qa-fp:([0-9a-f]+) step:(\S+) -->/.exec(issue.body || "");
-    return { number: issue.number, fp: m?.[1], step: m?.[2] };
+    return { number: issue.number, open: issue.state === "OPEN", fp: m?.[1], step: m?.[2] };
   });
+  const comments = (n) => gh(["issue", "view", String(n), "-R", repo, "--json", "comments", "--jq", ".comments[].body"]);
+  const say = (n, note) => {
+    if (dry) console.log(`would comment on #${n}: ${note}`);
+    else if (!comments(n).includes(note)) gh(["issue", "comment", String(n), "-R", repo, "--body", note]);
+  };
+  // "Fixed" needs a merged fix: the fixer's branch, or a merged pull request that says "Closes #N" / "Fix #N".
+  const fixMerged = (n) =>
+    JSON.parse(gh(["pr", "list", "-R", repo, "--state", "merged", "--limit", "100", "--json", "headRefName,title,body"])).some(
+      (pr) => pr.headRefName === `fix-issue-${n}` || new RegExp(`(close[sd]?|fix(e[sd])?|resolve[sd]?):? #${n}(\\D|$)`, "i").test(`${pr.title} ${pr.body}`),
+    );
 
   if (!dry) {
     try {
@@ -130,11 +142,9 @@ function main() {
     const existing = known.find((issue) => issue.fp === fp);
     const title = `[fleet-qa] ${step.title}: ${String(step.error || "failed").split("\n")[0].slice(0, 90)}`;
     if (existing) {
-      const note = `Seen again at commit \`${commit}\` (${phone}).`;
-      if (dry) console.log(`would comment on #${existing.number}: ${note}`);
-      else if (!gh(["issue", "view", String(existing.number), "-R", repo, "--json", "comments", "--jq", ".comments[].body"]).includes(note)) {
-        gh(["issue", "comment", String(existing.number), "-R", repo, "--body", note]);
-      }
+      if (!existing.open && !dry) gh(["issue", "reopen", String(existing.number), "-R", repo]);
+      say(existing.number, `${existing.open ? "Seen again" : "Back again, reopened:"} at commit \`${commit}\` (${phone}).`);
+      existing.open = true;
       summary.seenAgain.push(existing.number);
       continue;
     }
@@ -149,15 +159,19 @@ function main() {
     summary.opened.push(url);
   }
 
-  // A step that now passes for everyone closes the issues that were opened for it.
+  // A step that passes is not proof by itself: some errors come and go. An issue is
+  // "verified fixed" only when a fix for it was merged AND its step passes. Without a
+  // merged fix the issue stays open and only gets a note.
   for (const issue of known) {
-    if (!issue.step || !passed.has(issue.step)) continue;
-    // An error that comes and goes can skip this step today and hit another one: while the
-    // same error line is still failing anywhere in this run, the issue stays open.
-    const stillSeen = failed.some((f) => (issue.body || "").includes(String(f.error || "").split("\n")[0].trim() || "\u0000"));
-    if (stillSeen) continue;
-    if (dry) console.log(`would close #${issue.number}: step ${issue.step} passes`);
-    else gh(["issue", "close", String(issue.number), "-R", repo, "--comment", `Verified fixed: step \`${issue.step}\` passes at commit \`${commit}\` (${phone}).`]);
+    if (!issue.step || !passed.has(issue.step) || summary.seenAgain.includes(issue.number)) continue;
+    if (!fixMerged(issue.number)) {
+      if (issue.open) say(issue.number, `Did not happen at commit \`${commit}\` (${phone}). No fix has been merged for it, so it stays open: it may come and go.`);
+      continue;
+    }
+    const note = `Verified fixed: step \`${issue.step}\` passes at commit \`${commit}\` (${phone}), after its fix was merged.`;
+    if (!dry && comments(issue.number).includes("Verified fixed: step")) continue;
+    say(issue.number, note);
+    if (issue.open && !dry) gh(["issue", "close", String(issue.number), "-R", repo]);
     summary.closed.push(issue.number);
   }
 
