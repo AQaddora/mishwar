@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { enqueue, ensureAccount, flush, pendingCount, subscribe, type Outcome } from "@/lib/outbox";
 import { formatNumber } from "@/lib/time";
+import { refreshData } from "@/lib/use-public-data";
 
 type Send = (kind: string, payload: unknown) => Promise<Outcome>;
 const OutboxContext = createContext<{ accountId: string | null; pending: number; send: Send }>({
@@ -29,7 +30,11 @@ export function OutboxProvider({ accountId, children }: { accountId: string | nu
     const replay = async () => {
       const outcomes = await flush().catch(() => new Map<string, Outcome>());
       // Something reached the server in the background: show the fresh state.
-      if (alive && outcomes.size > 0) router.refresh();
+      if (alive && outcomes.size > 0) {
+        router.refresh();
+        // The phone's own copy too: a booking made offline now shows as confirmed or refused.
+        refreshData();
+      }
     };
     const unsubscribe = subscribe((event) => {
       if (!alive) return;
@@ -104,9 +109,16 @@ export function SaveNote({ outcome }: { outcome: Outcome | null }) {
   const waiting = outcome.status === "queued" && pending > 0;
   const tone = outcome.status === "rejected" ? "text-danger" : waiting ? "text-pending" : "text-accent";
   const text = outcome.status === "rejected" || waiting ? outcome.message : outcome.status === "queued" ? "انبعت" : "انحفظ";
+  // A schedule or maintenance change that hit bookings: say how many riders were told.
+  const cancelled = (outcome.result as { cancelled?: number } | null | undefined)?.cancelled ?? 0;
   return (
     <p role="status" className={`font-medium ${tone}`}>
       {text}
+      {cancelled > 0 && outcome.status !== "rejected" && (
+        <span className="block text-pending">
+          انلغى حجز <bdi>{formatNumber(cancelled)}</bdi> من الركّاب بسبب هالتغيير، وبلّغناهم.
+        </span>
+      )}
     </p>
   );
 }

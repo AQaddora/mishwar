@@ -143,3 +143,40 @@ describe("pagination", () => {
     expect(parseCursor(null)).toBeNull();
   });
 });
+
+describe("bookings in the sync (M5)", () => {
+  it("a guest's sync carries no booking, no phone and no rider data", () => {
+    const out = shapeSync(rowsFor(), T0);
+    expect(out.changes.bookings).toEqual([]);
+    expect(JSON.stringify(out)).not.toMatch(/05\d{8}/);
+  });
+  it("free seats are the seats minus what today's live bookings hold, never below zero", () => {
+    const rows = rowsFor();
+    rows.taken = { [rows.vehicles[0].driverId]: 3, [rows.vehicles[1].driverId]: 99 };
+    const out = shapeSync(rows, T0);
+    expect(out.changes.vehicles[0].free).toBe(rows.vehicles[0].seats - 3);
+    expect(out.changes.vehicles[1].free).toBe(0);
+    expect(out.changes.vehicles[2].free).toBe(rows.vehicles[2].seats);
+  });
+  it("a routine sync with a day of bookings stays under 10 KB", () => {
+    const rows: SyncRows = { routes: [], vehicles: [], schedule: [], positions: rowsFor().positions };
+    rows.bookings = Array.from({ length: 30 }, (_, i) => ({
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+      routeId: SEED_ROUTE.id,
+      routeName: SEED_ROUTE.name,
+      driverId: "cmg0000000000000000000000",
+      day: "2026-10-05",
+      time: "08:00",
+      from: SEED_ROUTE.stops[0],
+      to: SEED_ROUTE.stops[4],
+      fromPosition: 0,
+      toPosition: 4,
+      seats: 1,
+      status: "confirmed" as const,
+      name: "راكب",
+      phone: "0590000002",
+      createdAt: T0.toISOString(),
+    }));
+    expect(gz(shapeSync(rows, T0))).toBeLessThanOrEqual(10 * 1024);
+  });
+});

@@ -120,7 +120,7 @@ Approved 2026-10-05. Time box for all seven milestones: **2 hours**.
       from, to and time, plus a short explanation;
     - anonymised search log.
   - **See:** three options, one with a change, approximate arrival times.
-- [ ] **M5: Booking, pre-trip check, location** (`m5-booking`, 15 min)
+- [x] **M5: Booking, pre-trip check, location** (`m5-booking`, 15 min)
   - **Build:**
     - booking through the outbox; the server decides and the first booking wins;
     - "where is it now" and arrival time;

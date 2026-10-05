@@ -17,6 +17,12 @@ export type PublicDataState = {
 };
 
 const REFRESH_MS = 30_000;
+const REFRESH_EVENT = "mishwar:refresh";
+
+/** After a write reached the server: pull now, so every open screen shows the result. */
+export function refreshData(): void {
+  window.dispatchEvent(new Event(REFRESH_EVENT));
+}
 
 // The screens' way to the public data: the phone's copy first, then a refresh in the
 // background, again every 30 seconds while the screen is open, and when the app comes
@@ -42,11 +48,13 @@ export function usePublicData(): PublicDataState {
       if (document.visibilityState === "visible") void refresh();
     };
     window.addEventListener("online", refresh);
+    window.addEventListener(REFRESH_EVENT, refresh);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearInterval(timer);
       window.removeEventListener("online", refresh);
+      window.removeEventListener(REFRESH_EVENT, refresh);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);

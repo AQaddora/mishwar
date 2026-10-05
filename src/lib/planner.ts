@@ -77,7 +77,7 @@ export function distanceMeters(a: LatLon, b: LatLon): number {
 
 // How far along the route line (stop to stop) a point sits, measured from the first stop.
 // The point is dropped onto the nearest segment of the line.
-function alongRoute(points: LatLon[], p: LatLon): number {
+function nearestOnLine(points: LatLon[], p: LatLon): { off: number; along: number } {
   let best = { off: Infinity, along: 0 };
   let walked = 0;
   for (let i = 0; i < points.length - 1; i++) {
@@ -96,7 +96,30 @@ function alongRoute(points: LatLon[], p: LatLon): number {
     if (off < best.off) best = { off, along: walked + length * t };
     walked += length;
   }
-  return best.along;
+  return best;
+}
+const alongRoute = (points: LatLon[], p: LatLon) => nearestOnLine(points, p).along;
+
+/** Metres between a point and the route line drawn stop to stop. Null when a stop has no known place. */
+export function distanceFromRoute(stops: string[], p: LatLon, places: PlaceLookup): number | null {
+  const points: LatLon[] = [];
+  for (const id of stops) {
+    const place = places(id);
+    if (!place) return null;
+    points.push(place);
+  }
+  if (points.length < 2) return null;
+  return nearestOnLine(points, p).off;
+}
+
+// «بتوصل بعد حوالي ١٠ دقايق»: minutes until a vehicle reaches one stop of its route, from
+// a FRESH position only. Null otherwise: never a guess.
+export function minutesToStop(route: SyncRoute, position: SyncPosition | null, stopIndex: number, now: number, places: PlaceLookup): number | null {
+  if (!position || isStale(position.at, now)) return null;
+  const line = stopOffsets(route, places);
+  if (!line || line.offsets[stopIndex] === undefined) return null;
+  const speed = position.speed && position.speed >= MIN_SPEED_MPS ? position.speed : TYPICAL_SPEED_MPS;
+  return Math.abs(line.offsets[stopIndex] - alongRoute(line.points, position)) / speed / 60;
 }
 
 /** Metres from the first stop to each stop, along the line. Null when a stop has no known place. */

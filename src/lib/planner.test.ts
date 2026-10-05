@@ -38,6 +38,7 @@ function network(drivers: ReturnType<typeof driver>[], positions: SyncPosition[]
     routes: drivers.map((d) => d.route),
     vehicles: drivers.map((d) => d.vehicle),
     schedule: drivers.flatMap((d) => d.schedule),
+    bookings: [],
     positions,
   };
 }
