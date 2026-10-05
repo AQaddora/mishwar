@@ -1,0 +1,1 @@
+{"name":"mishwar-selftest","private":true,"scripts":{"start":"node server.js"}}
