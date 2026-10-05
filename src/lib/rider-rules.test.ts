@@ -25,6 +25,9 @@ const data: PublicData = {
   ],
   positions: [{ id: "v1", lat: 1, lon: 1, at: "2026-10-05T07:00:00Z" }],
   bookings: [],
+    requests: [],
+    offers: [],
+    messages: [],
 };
 const monday = (time: string) => ({ day: "2026-10-05", weekday: 1, time });
 const tuesday = (time: string) => ({ day: "2026-10-06", weekday: 2, time });

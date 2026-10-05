@@ -33,6 +33,9 @@ model User {
   trips         Trip[]
   bookings      Booking[]
   locationShares LocationShare[]
+  requests      SpecialRequest[]
+  offers        Offer[]
+  messages      Message[]
 }
 
 model Account {
@@ -275,4 +278,61 @@ model LocationShare {
   rider     User      @relation(fields: [riderId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
+}
+
+// «طلب خاص»: a rider asks for a private trip; drivers answer with priced offers.
+// status: open → accepted (the rider took one offer; that is the agreed private trip)
+// or closed (the rider withdrew it). completedAt: the chosen driver said «خلّصت المشوار».
+// The two parties of the agreed trip are riderId and the accepted offer's driverId.
+model SpecialRequest {
+  id          String    @id
+  riderId     String
+  fromPlaceId String
+  toPlaceId   String
+  // Local calendar day in Asia/Gaza and local time "HH:MM".
+  day         String
+  time        String
+  seats       Int
+  note        String?
+  status      String    @default("open")
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  rider       User      @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  offers      Offer[]
+
+  @@index([riderId])
+  @@index([status, day])
+}
+
+// One driver's price for one request: the only money in the app, in integer agorot.
+// One offer per driver per request. status: sent → accepted or declined.
+model Offer {
+  id          String         @id
+  requestId   String
+  driverId    String
+  priceAgorot Int
+  status      String         @default("sent")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  request     SpecialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  driver      User           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  @@unique([requestId, driverId])
+  @@index([driverId])
+}
+
+// The chat thread of one offer, between its driver and the request's rider. Append-only,
+// ordered by server time. The id comes from the phone, so a replay never doubles a message.
+model Message {
+  id       String   @id
+  offerId  String
+  senderId String
+  body     String
+  sentAt   DateTime @default(now())
+  offer    Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  sender   User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([offerId, sentAt])
 }

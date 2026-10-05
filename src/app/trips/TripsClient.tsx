@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BookingNotices, sharingNow } from "@/components/BookingNotices";
 import { DataAge } from "@/components/DataAge";
 import { useOutbox } from "@/components/OutboxStatus";
+import { PrivateTrips } from "@/components/PrivateTrips";
 import { Sheet } from "@/components/Sheet";
 import { VehiclePhoto } from "@/components/VehicleCards";
 import { PENDING_BOOKING, riderStatus, seatsText, TONE_CLASS, whenText } from "@/lib/booking-copy";
@@ -103,6 +104,7 @@ export function TripsClient({ openId, autoAsk }: { openId: string | null; autoAs
 
   const bookings = useMemo(() => [...data.bookings].sort((a, b) => Number(isLive(b)) - Number(isLive(a)) || b.day.localeCompare(a.day) || b.time.localeCompare(a.time)), [data.bookings]);
   const open = bookings.find((b) => b.id === opened) ?? null;
+  const hasPrivate = data.offers.some((o) => o.status === "accepted");
 
   async function cancel(id: string) {
     setBusy(true);
@@ -119,7 +121,7 @@ export function TripsClient({ openId, autoAsk }: { openId: string | null; autoAs
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />
       {!ready ? (
         <div className="skeleton h-[132px] rounded-card" aria-hidden="true" />
-      ) : bookings.length === 0 && waiting.length === 0 ? (
+      ) : bookings.length === 0 && waiting.length === 0 && !hasPrivate ? (
         <p className="text-text-muted">لسّا ما حجزت أي مشوار. دوّر على مشوار من الرئيسية واحجز كرسيك.</p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -143,6 +145,8 @@ export function TripsClient({ openId, autoAsk }: { openId: string | null; autoAs
           ))}
         </ul>
       )}
+
+      {ready && <PrivateTrips data={data} role="rider" today={today} />}
 
       <Sheet
         open={open !== null}

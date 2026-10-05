@@ -74,6 +74,43 @@ export type SyncBooking = {
   share?: SyncShare;
 };
 
+// ---- Special requests. PRIVATE: a rider gets his own requests with every offer on them;
+// a driver gets the open requests, his own offers and his own threads. Never a guest.
+
+export type SyncRequest = {
+  id: string;
+  from: string;
+  to: string;
+  day: string;
+  time: string;
+  seats: number;
+  note?: string;
+  status: "open" | "accepted" | "closed";
+  completedAt?: string;
+  createdAt: string;
+  /** True on the rider's own phone. */
+  mine?: boolean;
+  /** For a driver: the rider's first name. */
+  name?: string;
+  /** For the ONE driver whose offer the rider accepted, until the trip is done. */
+  phone?: string;
+};
+export type SyncOffer = {
+  id: string;
+  requestId: string;
+  driverId: string;
+  /** The driver's first name. */
+  name: string;
+  /** Integer agorot: the only money in the app. */
+  price: number;
+  status: "sent" | "accepted" | "declined";
+  /** The driver's phone, for the rider, while the offer is in play. */
+  phone?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+export type SyncMessage = { id: string; offerId: string; mine: boolean; body: string; at: string };
+
 export type SyncChanges = {
   routes: SyncRoute[];
   vehicles: SyncVehicle[];
@@ -82,6 +119,11 @@ export type SyncChanges = {
   positions: SyncPosition[];
   /** PRIVATE, signed-in only. Like positions, always the COMPLETE current set for this user. */
   bookings: SyncBooking[];
+  /** PRIVATE, signed-in only, COMPLETE current sets like bookings. */
+  requests: SyncRequest[];
+  offers: SyncOffer[];
+  /** The last messages of each of the user's threads (see SYNC_MESSAGES_PER_THREAD). */
+  messages: SyncMessage[];
 };
 export type SyncResponse = {
   cursor: string;
@@ -92,4 +134,4 @@ export type SyncResponse = {
 };
 
 export type PublicData = SyncChanges;
-export const EMPTY_PUBLIC_DATA: PublicData = { routes: [], vehicles: [], schedule: [], positions: [], bookings: [] };
+export const EMPTY_PUBLIC_DATA: PublicData = { routes: [], vehicles: [], schedule: [], positions: [], bookings: [], requests: [], offers: [], messages: [] };

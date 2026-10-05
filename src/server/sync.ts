@@ -4,12 +4,15 @@
 //
 // Public data (routes, vehicles, schedule, positions) is the same for everyone, guests
 // included. Later milestones add the signed-in user's private data (bookings, offers,
-// messages) in buildSyncResponse, next to the public part.
+// messages) in buildSyncResponse, next to the public part: bookings (M5) and special
+// requests, offers and chat threads (M6).
 import { prisma } from "@/lib/prisma";
 import type { VehicleType } from "@/lib/driver-rules";
-import type { SyncBooking, SyncResponse } from "@/lib/public-data";
+import type { SyncBooking, SyncMessage, SyncOffer, SyncRequest, SyncResponse } from "@/lib/public-data";
+import { SYNC_MESSAGES_PER_THREAD } from "@/lib/request-rules";
 import { addDays, gazaNow } from "@/lib/time";
 import { firstName, shapeBooking } from "@/server/booking-view";
+import { shapeRequest, type Viewer } from "@/server/request-view";
 
 export { firstName };
 
@@ -57,6 +60,10 @@ export type SyncRows = {
   taken?: Record<string, number>;
   /** The signed-in user's own bookings, already shaped for them. Never set for a guest. */
   bookings?: SyncBooking[];
+  /** The signed-in user's special requests, offers and threads, already shaped. Never set for a guest. */
+  requests?: SyncRequest[];
+  offers?: SyncOffer[];
+  messages?: SyncMessage[];
 };
 
 // Pure: rows in, response out. Unit-tested against the byte budgets with the seed data.
@@ -122,6 +129,9 @@ export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
         at: p.at.toISOString(),
       })),
       bookings: rows.bookings ?? [],
+      requests: rows.requests ?? [],
+      offers: rows.offers ?? [],
+      messages: rows.messages ?? [],
     },
     deleted: { routes: [], vehicles: [] },
     more: false,
@@ -173,10 +183,48 @@ async function privateBookings(userId: string, now: Date): Promise<SyncBooking[]
   return rows.flatMap((row) => shapeBooking(row, userId, now.getTime()) ?? []);
 }
 
-export async function buildSyncResponse(user: { id: string } | null, since: Date | null): Promise<SyncResponse> {
+/** Open requests a driver is sent at once; the newest win. */
+export const OPEN_REQUESTS_IN_SYNC = 60;
+
+// Special requests for the signed-in user. A rider: his own, with every offer and thread.
+// A driver: the open ones, plus those he offered on, with only his own offer and thread.
+// Complete set each time; finished and closed ones drop out after yesterday.
+async function privateRequests(viewer: Viewer, now: Date) {
+  const today = gazaNow(now).day;
+  const recent = { OR: [{ day: { gte: addDays(today, -1) } }, { status: "accepted", completedAt: null }] };
+  const rows = await prisma.specialRequest.findMany({
+    where: {
+      OR: [
+        { riderId: viewer.id, ...recent },
+        { offers: { some: { driverId: viewer.id } }, ...recent },
+        ...(viewer.role === "driver" ? [{ status: "open", day: { gte: today } }] : []),
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: OPEN_REQUESTS_IN_SYNC + 40,
+    include: {
+      rider: { select: { name: true, phone: true } },
+      offers: {
+        orderBy: { createdAt: "asc" },
+        include: { driver: { select: { name: true, phone: true } }, messages: { orderBy: { sentAt: "desc" }, take: SYNC_MESSAGES_PER_THREAD } },
+      },
+    },
+  });
+  const out = { requests: [] as SyncRequest[], offers: [] as SyncOffer[], messages: [] as SyncMessage[] };
+  for (const row of rows) {
+    const shaped = shapeRequest(row, viewer);
+    if (!shaped) continue;
+    out.requests.push(shaped.request);
+    out.offers.push(...shaped.offers);
+    out.messages.push(...shaped.messages);
+  }
+  return out;
+}
+
+export async function buildSyncResponse(user: Viewer | { id: string } | null, since: Date | null): Promise<SyncResponse> {
   const serverTime = new Date();
   const changed = since ? { gte: since } : undefined;
-  const [routes, vehicles, schedule, positions, held, bookings] = await Promise.all([
+  const [routes, vehicles, schedule, positions, held, bookings, special] = await Promise.all([
     prisma.route.findMany({
       // A first sync has no use for routes that are already deleted.
       where: since ? { OR: [{ updatedAt: changed }, { deletedAt: changed }] } : { deletedAt: null },
@@ -217,7 +265,8 @@ export async function buildSyncResponse(user: { id: string } | null, since: Date
       _sum: { seats: true },
     }),
     user ? privateBookings(user.id, serverTime) : Promise.resolve(undefined),
+    user ? privateRequests({ id: user.id, role: "role" in user ? user.role : null }, serverTime) : Promise.resolve(undefined),
   ]);
   const taken = Object.fromEntries(held.map((h) => [h.driverId, h._sum.seats ?? 0]));
-  return shapeSync({ routes, vehicles, schedule, positions, taken, bookings }, serverTime);
+  return shapeSync({ routes, vehicles, schedule, positions, taken, bookings, ...special }, serverTime);
 }

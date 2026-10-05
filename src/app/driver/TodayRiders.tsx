@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { DataAge } from "@/components/DataAge";
+import { PrivateTrips } from "@/components/PrivateTrips";
+import { RequestNotices } from "@/components/RequestNotices";
 import { MapView } from "@/components/MapView";
 import { SaveNote, useOutbox } from "@/components/OutboxStatus";
 import { Sheet } from "@/components/Sheet";
@@ -67,6 +69,7 @@ export function TodayRiders({ hasOpenTrip, canDrive, openLocation }: { hasOpenTr
 
   return (
     <section className="mt-4 flex flex-col gap-3">
+      {ready && <RequestNotices data={data} role="driver" now={now} />}
       <h2 className="text-title">ركّاب اليوم</h2>
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />
       {!ready ? (
@@ -152,6 +155,8 @@ export function TodayRiders({ hasOpenTrip, canDrive, openLocation }: { hasOpenTr
           </>
         )
       )}
+
+      {ready && <PrivateTrips data={data} role="driver" today={clock.day} />}
 
       <Sheet open={located !== null} onClose={() => setLocating(null)} title="وين الراكب؟">
         {located && (

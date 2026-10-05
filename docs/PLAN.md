@@ -130,7 +130,7 @@ Approved 2026-10-05. Time box for all seven milestones: **2 hours**.
     - off-route alert to booked riders.
   - **See:** booking sheet «تأكد حجزك»; where-is-it-now; driver checklist with locked
     «ابدأ الرحلة»; consent sheet; off-route notice.
-- [ ] **M6: Special requests, offers, chat** (`m6-requests`, 12 min)
+- [x] **M6: Special requests, offers, chat** (`m6-requests`, 12 min)
   - **Build:**
     - request form;
     - offer cards with price, name, vehicle, photos and phone;

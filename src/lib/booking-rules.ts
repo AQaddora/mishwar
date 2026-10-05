@@ -2,6 +2,7 @@
 // skill, references/data-model.md, invariants 4, 6, 7, 9, 11 and 12). The server uses them
 // to accept or refuse; the screens use them to say what is going on. Shared by both.
 import { isRunning, type Maintenance, type RouteRef, type ScheduleDayInput } from "@/lib/driver-rules";
+import { offerPhoneVisible, type OfferLink } from "@/lib/request-rules";
 import { isDay, isTime, weekdayOf } from "@/lib/time";
 
 export type BookingStatus = "confirmed" | "ready" | "rejected" | "cancelled";
@@ -24,10 +25,13 @@ export function isLive(b: Liveness): boolean {
   return (b.status === "confirmed" || b.status === "ready") && !b.completedAt;
 }
 
-// Invariant 11: a rider's phone is shown to a driver only while a live booking links them
-// (M6 adds: or an accepted offer). The same rule decides when the rider sees the driver's.
-export function phoneVisible(b: Liveness): boolean {
-  return isLive(b);
+// Invariant 11, the one place that decides who sees whose phone. Two things can link a
+// rider and a driver:
+// - a live booking: each sees the other's phone while it is live;
+// - a special-request offer: the rider sees the driver's phone with the offer; the driver
+//   sees the rider's only after the rider accepted HIS offer (see request-rules.ts).
+export function phoneVisible(link: Liveness | OfferLink): boolean {
+  return "offerStatus" in link ? offerPhoneVisible(link) : isLive(link);
 }
 
 // ---- Booking a seat (invariants 4 and 6)

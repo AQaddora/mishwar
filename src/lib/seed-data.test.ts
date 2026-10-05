@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateStops } from "./driver-rules";
 import { EXTRACT_DATE, GAZA_BBOX, getPlace, PLACES } from "./places";
-import { SEED_FLEET, SEED_ROUTE } from "../../scripts/qa-seed.mjs";
+import { SEED_FLEET, SEED_REQUESTS, SEED_ROUTE } from "../../scripts/qa-seed.mjs";
 
 describe("gazetteer (data/gazetteer.json)", () => {
   it("has places, each traceable to an OSM element", () => {
@@ -40,5 +40,17 @@ describe("QA seed route", () => {
       expect(validateStops(d.route.stops, (id) => getPlace(id) !== undefined)).toBeNull();
       expect(getPlace(d.route.stops[d.at.stop])).toBeDefined();
     }
+  });
+  it("asks for special requests between real places, with one open request carrying two offers and a chat", () => {
+    const requests = SEED_REQUESTS as { from: string; to: string; status: string; offers: { status: string; price: number; chat: unknown[] }[] }[];
+    for (const r of requests) {
+      expect(getPlace(r.from), r.from).toBeDefined();
+      expect(getPlace(r.to), r.to).toBeDefined();
+      // Invariant 10: at most one accepted offer, and only on an accepted request.
+      expect(r.offers.filter((o) => o.status === "accepted")).toHaveLength(r.status === "accepted" ? 1 : 0);
+      for (const o of r.offers) expect(Number.isInteger(o.price)).toBe(true);
+    }
+    const open = requests.find((r) => r.status === "open" && r.offers.length === 2)!;
+    expect(open.offers.some((o) => o.chat.length >= 3)).toBe(true);
   });
 });
