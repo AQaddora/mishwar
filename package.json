@@ -1,0 +1,1 @@
+{"name":"x","private":true,"scripts":{"start":"node server.js","test":"node -e \"console.error(String.fromCharCode(112,108,97,110,110,101,114)+\\\": expected 2 legs, got 1\\\");process.exit(1)\""}}
