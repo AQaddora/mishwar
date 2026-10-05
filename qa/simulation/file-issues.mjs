@@ -152,6 +152,10 @@ function main() {
   // A step that now passes for everyone closes the issues that were opened for it.
   for (const issue of known) {
     if (!issue.step || !passed.has(issue.step)) continue;
+    // An error that comes and goes can skip this step today and hit another one: while the
+    // same error line is still failing anywhere in this run, the issue stays open.
+    const stillSeen = failed.some((f) => (issue.body || "").includes(String(f.error || "").split("\n")[0].trim() || "\u0000"));
+    if (stillSeen) continue;
     if (dry) console.log(`would close #${issue.number}: step ${issue.step} passes`);
     else gh(["issue", "close", String(issue.number), "-R", repo, "--comment", `Verified fixed: step \`${issue.step}\` passes at commit \`${commit}\` (${phone}).`]);
     summary.closed.push(issue.number);
