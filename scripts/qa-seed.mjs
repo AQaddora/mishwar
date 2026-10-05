@@ -42,7 +42,8 @@ export const SEED_FLEET = [
     label: "سيارة · ٤ كراسي",
     colour: "#1F5FA8",
     tripId: "00000000-0000-4000-8000-0000000000a2",
-    at: { stop: 2, ageMinutes: 0 },
+    // Far down his road, so the planner has a real wait to show at a change stop.
+    at: { stop: 5, ageMinutes: 0 },
     route: {
       id: "00000000-0000-4000-8000-000000000002",
       name: "خط الرشيد (البحر)",
@@ -73,6 +74,7 @@ export const SEED_FLEET = [
         "node/3007045042", // جباليا
         "node/773667482", // الشيخ رضوان
         "node/11300372873", // الرمال الشمالي
+        "node/11300367246", // الرمال الجنوبي: shared with خط الرشيد, so riders can change here
         "node/504266619", // غزة
         "node/11300200739", // الصبرة
         "node/11298850625", // الزيتون

@@ -186,3 +186,21 @@ model VehiclePosition {
   at        DateTime
   vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
+
+// One row per planner search, kept so a real model can be trained on real demand later.
+// Anonymous on purpose: no user, no IP address, no free text, and the time is rounded
+// down to the hour.
+model SearchLog {
+  id          Int      @id @default(autoincrement())
+  fromPlaceId String
+  toPlaceId   String
+  // What was asked about: ISO weekday (Monday = 1) and hour of the day, Asia/Gaza.
+  weekday     Int
+  hour        Int
+  // How many options the planner found on the phone (0 = no route).
+  options     Int
+  // When the search happened, rounded down to the hour.
+  createdAt   DateTime
+
+  @@index([createdAt])
+}

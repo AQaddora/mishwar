@@ -111,7 +111,7 @@ Approved 2026-10-05. Time box for all seven milestones: **2 hours**.
     - offline basics (cached app, last-known data, sync within budget).
   - **See:** Gaza map with demo vehicles «آخر مكان قبل ٣ دقايق»; driving screen; search
     results; «آخر تحديث».
-- [ ] **M4: Trip planner** (`m4-planner`, 20 min)
+- [x] **M4: Trip planner** (`m4-planner`, 20 min)
   - **Build:**
     - route search in the browser over the synced routes: up to 3 options sorted by
       arrival from live positions, including a change of vehicle; works offline;
