@@ -22,6 +22,8 @@ take with no signal.
    - Small JSON, only the changes since the last sync, within the budget below.
    - Always show how old the data on screen is («آخر تحديث قبل ٥ دقايق»), and make stale
      data look stale.
+   - Live vehicle positions (latest point only) travel in the routine sync. Show each
+     position's own age.
 4. **Photos never travel in the normal sync.**
    - Sync carries photo hashes only.
    - Downloaded photos are cached on the phone and shown offline.
@@ -49,8 +51,9 @@ take with no signal.
 |---|---|---|
 | Seats on a trip | The server decides; the first booking to reach it wins | Winner: «تأكد حجزك». Loser: «الكراسي خلصت قبل ما يوصل طلبك», plus other options |
 | Accepting an offer | First accept wins, and the request closes | The other drivers: «الراكب اختار عرض ثاني» |
-| A driver's routes, weekly schedule, maintenance, vehicle, fares | One author: the driver's latest edit wins (by server time) | The driver sees the saved version |
+| A driver's routes, weekly schedule, maintenance, vehicle | One author: the driver's latest edit wins (by server time) | The driver sees the saved version |
 | A rider books, offline, a driver who has since stopped running (not working that day, outside hours, maintenance, or that day's route skips the stop) | The server rejects the booking | «انلغى حجزك لأنه السوّاق غيّر شغله اليوم» (or the maintenance reason), plus other options |
+| Ready or cancel before a trip | The driver decides each booking; a cancel beats a later "ready" or a rider change | Rider: «السوّاق أكّد إنك جاهز», or the cancel reason |
 | Chat messages | Append-only, ordered by server time | A pending mark until sent |
 
 Before adding a new kind of shared data, add its row here first.

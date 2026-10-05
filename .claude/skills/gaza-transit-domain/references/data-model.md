@@ -11,18 +11,18 @@ matches the domain.
 | User | id, name, phone, role (`rider`, `driver`) | The phone is private: see the visibility rules below |
 | Vehicle | id, driverId (unique), type (`car`, `bus`, `ajala`), capacity, photos[] | One vehicle per driver account. Capacity is set by the driver; photos are referenced by content hash |
 | Maintenance | id, vehicleId, fromDay, untilDay (null = until the driver says it's back) | The vehicle is out of service, so the driver isn't running and can't send offers |
-| Route | id, driverId, isDefault, startPlaceId, name | A driver can keep several routes; exactly one is the default |
+| Route | id, driverId, isDefault, startPlaceId, name | A driver can keep several routes; exactly one is the default. Runs both ways. No fares |
 | RouteStop | routeId, position, placeId | `position` is 0..n-1, contiguous, unique per route |
-| Fare | routeId, fromPosition, toPosition, priceAgorot | Per seat, per leg, set by the driver, per route |
+| VehiclePosition | vehicleId (unique), lat, lon, speed, at | GPS from the driving screen only. One row per vehicle, overwritten, never a history |
 | ScheduleDay | driverId, weekday, working, startTime, endTime, routeId (null = default route) | The weekly schedule: at most one row per weekday. Urgent changes edit these same rows. `startTime` is that day's first trip |
 | Place | id, osmType, osmId, nameAr, name, lat, lon | From OSM only (see places.md) |
-| Booking | id, riderId, routeId, day, fromPosition, toPosition, seats, status | Status: `pending`, `confirmed`, `rejected`, `cancelled`. `routeId` is the route running that day. Shown to riders as a "trip leg" |
+| Booking | id, riderId, routeId, day, fromPosition, toPosition, seats, status, calledAt, readyAt, cancelReason, startedAt, offRouteNotifiedAt | Status: `pending`, `confirmed`, `ready`, `rejected`, `cancelled`. `cancelReason`: `rider_not_ready`, `schedule_change`, `maintenance`, `by_rider`. `routeId` is the route running that day; either direction. Shown to riders as a "trip leg" |
 | SpecialRequest | id, riderId, fromPlaceId, toPlaceId, day, time, seats, status | Status: `open`, `accepted`, `closed` |
 | Offer | id, requestId, driverId, priceAgorot, status | The vehicle is the driver's one vehicle. Status: `sent`, `accepted`, `declined` |
 | ChatMessage | id, requestId or bookingId, senderId, body, sentAt | Append-only |
-| LocationShare | id, bookingId or requestId, riderId, consentAt, endedAt | One record per consent; position points live only until `endedAt` |
+| LocationShare | id, bookingId, riderId, askedAt, answer, expiresAt, lat, lon | One record per driver ask. Position cleared at trip start or `expiresAt` (asked + 15 min) |
 
-- **Money** is always integer agorot.
+- **Money:** the only money is the offer price, in integer agorot. Routes have no fares.
 - **Times** are shown in Asia/Gaza.
   - Store real moments as UTC instants.
   - Store timetable values (`startTime`, `endTime`) as plain local times.
@@ -58,16 +58,30 @@ candidates:
      seats, and tells each rider why.
    - A booking survives a route change only if both its stops are on the new route, inside
      the new hours.
-5. **Route stops:** at least two; positions contiguous from 0; no duplicates.
+5. **Route stops:** at least two; positions contiguous from 0; no duplicates. A booking
+   may go in either direction (from a later stop to an earlier one).
 6. **Capacity:** at least 1. Booked seats on a trip never exceed capacity. The server
    decides, and the first booking to arrive wins.
-7. **Fares:** a fare is a positive integer in agorot, and only the route's driver can set
-   it.
-8. **Offers:** a special request has at most one accepted offer. Accepting one declines
-   the rest.
-9. **Rider phone:** visible to a driver only when a confirmed booking or an accepted offer
-   links them.
-10. **Live location:**
-    - points can't be written without a consent record for that trip;
-    - points are deleted when the trip ends;
-    - a new trip needs new consent.
+7. **Starting a trip:**
+   - "Start trip" is refused while any booking for that trip is still `confirmed`. Each
+     one must be `ready` or `cancelled`.
+   - A driver's `rider_not_ready` cancel is refused unless `calledAt` is set.
+   - Every cancel frees the seat and notifies the rider with the reason.
+8. **Positions and arrival:**
+   - a VehiclePosition is written only from the driver's own driving screen, and keeps
+     one row per vehicle;
+   - older than 5 minutes is stale;
+   - no fresh position means no arrival time. Never fall back to the schedule.
+9. **Off route:**
+   - a running vehicle more than 500 m from its route line for 2 minutes notifies each
+     booked rider once (`offRouteNotifiedAt`);
+   - a single GPS jump doesn't count;
+   - coming back and leaving again notifies again.
+10. **Offers:** a special request has at most one accepted offer. Accepting one declines
+   the rest. The offer price is the only money in the app.
+11. **Rider phone:** visible to a driver only when a live booking (confirmed or ready) or an accepted
+    offer links them.
+12. **Live location:**
+    - a position can't be written without a yes to that ask;
+    - it's cleared at trip start or 15 minutes after the ask, whichever comes first;
+    - the next ask needs a new yes.

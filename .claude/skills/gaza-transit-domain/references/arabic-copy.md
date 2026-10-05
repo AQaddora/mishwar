@@ -21,7 +21,6 @@
 | route / line | خط |
 | stop | موقف، مواقف |
 | seat | كرسي، كراسي |
-| fare | أجرة |
 | shekel | شيكل (₪) |
 | car / bus / ajala | سيارة / باص / عجلة |
 | special request | طلب خاص |
@@ -68,6 +67,22 @@
 | Rider: different route today | السوّاق ماشي اليوم على خط ثاني |
 | Rider: booking cancelled by a driver change | انلغى حجزك لأنه السوّاق غيّر شغله اليوم |
 | Days of the week (Saturday first) | السبت، الأحد، الاثنين، الثلاثاء، الأربعاء، الخميس، الجمعة |
+| Driver: the driving screen | أنا سايق |
+| Driver: keep it open | خلّي مِشوار مفتوح وإنت سايق عشان الركّاب يشوفوك |
+| Driver: off route (one tap) | شكلك طالع عن خطك، بدك تغيّر خط اليوم؟ |
+| Rider: where is it now | وين السيارة هلأ؟ |
+| Rider: arrival | بتوصل بعد حوالي ١٠ دقايق |
+| Rider: position age | آخر مكان قبل ٣ دقايق |
+| Rider: stale or no position | ما في مكان جديد للسيارة هلأ |
+| Rider: vehicle left its route | السيارة طالعة عن خطها، احكي مع السوّاق |
+| Rider: call the driver | اتصل بالسوّاق |
+| Driver: before starting | قبل ما تطلع، تأكد من كل الركّاب |
+| Driver: rider ready | جاهز |
+| Driver: rider not ready | مش جاهز، الغي الحجز |
+| Driver: start locked | ضل ركّاب ما تأكدت منهم |
+| Driver: start trip | ابدأ الرحلة |
+| Rider: driver confirmed you | السوّاق أكّد إنك جاهز |
+| Rider: cancelled as not ready | السوّاق لغى حجزك: اتصل فيك وما كنت جاهز |
 
 ## Instead of… write…
 

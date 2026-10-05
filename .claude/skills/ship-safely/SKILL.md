@@ -10,6 +10,8 @@ contract true, and nothing reaches main without a green Fleet QA run and Ahmed's
 
 ## Every milestone
 
+0. **Say on air what you're starting** (on-air skill). The milestones and their names are
+   in `docs/PLAN.md`; tick a milestone's box in the PR that ships it.
 1. **Branch from an up-to-date main:** `m<N>-<short-slug>` (for example
    `m2-special-requests`).
    - One milestone, one branch, one PR.
@@ -18,7 +20,9 @@ contract true, and nothing reaches main without a green Fleet QA run and Ahmed's
    - Add the milestone's screens to `qa/routes.txt`.
    - Add at least one unit test for its hardest rule.
 3. **Before pushing,** `npm run build` and `npm test` must pass locally.
-4. **Open the PR** with `gh pr create`, using the template below.
+4. **Open the PR** with `gh pr create`:
+   - title `M<N>: <plain name>` (for example `M2: Driver setup`);
+   - body from the template below, in plain words.
 5. **Wait for Fleet QA.** It usually takes a minute or two.
    - It posts one "Fleet QA" comment (every check plus phone-size screenshots) and a
      `fleet-qa` commit status on the head commit. There are no GitHub Actions in this
@@ -31,7 +35,9 @@ contract true, and nothing reaches main without a green Fleet QA run and Ahmed's
 6. **Red:** fix it on the same branch, push, and wait again.
    - Never merge on red, pending or missing.
 7. **Green:**
-   - Tell Ahmed the PR is ready (on-air skill).
+   - Tell Ahmed, on screen and out loud, that the PR is ready and what to look for in the
+     screenshots (on-air skill).
+   - Don't start the next milestone until he answers.
    - Merge only after he says "merge": `gh pr merge <number> --squash --delete-branch`.
    - Then the taqat-deploy skill takes over and confirms the merge is live.
 
