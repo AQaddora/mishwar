@@ -1,8 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Tajawal } from "next/font/google";
 import type { ReactNode } from "react";
 import { TabBar, type TabRole } from "@/components/TabBar";
 import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
+
+// Self-hosted at build time: the files ship from our origin, so they work offline.
+// Tajawal has no 600; use font-medium (500) or font-bold (700).
+const tajawal = Tajawal({
+  weight: ["400", "500", "700"],
+  subsets: ["arabic", "latin"],
+  display: "swap",
+  variable: "--font-tajawal",
+});
 
 export const metadata: Metadata = {
   title: "مِشوار",
@@ -31,7 +41,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const role: TabRole = user ? (user.role ?? "rider") : "guest";
 
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" className={tajawal.variable}>
       <body>
         {children}
         <TabBar role={role} />

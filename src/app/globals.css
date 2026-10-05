@@ -27,7 +27,6 @@
   --text-title: 22px; --text-title--font-weight: 700; --text-title--line-height: 28px;
   --text-body: 17px; --text-body--line-height: 22px;
   --text-caption: 13px; --text-caption--line-height: 18px;
-  --font-sans: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Noto Naskh Arabic", Tahoma, sans-serif;
 }
 
 /* Edge spacing. Every edge-anchored block clears the notch and the home indicator. */
@@ -61,7 +60,9 @@
   body {
     min-height: 100vh;
     min-height: 100dvh;
-    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Noto Naskh Arabic", Tahoma, sans-serif;
+    /* Tajawal from next/font (layout.tsx); the system stack covers the moment before it loads. */
+    font-family: var(--font-tajawal), system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+    font-weight: 400;
     font-size: 17px;
     line-height: 22px;
     -webkit-font-smoothing: antialiased;

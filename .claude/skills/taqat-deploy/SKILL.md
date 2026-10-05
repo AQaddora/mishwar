@@ -56,12 +56,26 @@ message says. Report that plainly. If it stays wrong, ask Ahmed (on-air skill).
 
 ## Secrets
 
+**Server access.** From Ahmed's Mac the Dokku host is the SSH alias `taqat-apps` (root,
+with its own key), and the commands are `dokku …`. The form
+`ssh dokku@mishwar.apps.taqat.academy` does not work from this Mac.
+
 Secrets reach the server only this way. The value is read from a file outside the repo,
 and the output is discarded, because `config:set` echoes values:
 
 ```bash
-ssh dokku@mishwar.apps.taqat.academy config:set mishwar NAME="$(cat /path/outside/repo/NAME)" >/dev/null 2>&1
+ssh -n taqat-apps "dokku config:set mishwar NAME=$(cat /path/outside/repo/NAME)" >/dev/null 2>&1
 ```
+
+- Run it under bash, not zsh. zsh treats names like `GID` and `UID` as special read-only
+  variables.
+- Use `ssh -n` inside scripts. Without it, ssh swallows the rest of a heredoc as its
+  standard input.
+- **Read-only diagnosis is safe:**
+  - `ssh -n taqat-apps dokku ps:report mishwar`;
+  - `ssh -n taqat-apps "dokku logs mishwar --num 100"`;
+  - `ssh -n taqat-apps dokku config:keys mishwar` (key names only).
+- **Never run `config:show` or `config:get` where output can reach the screen.**
 
 - **Never show a value:**
   - never print it;

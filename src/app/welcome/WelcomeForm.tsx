@@ -27,7 +27,7 @@ export function WelcomeForm() {
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="phone" className="font-semibold">
+        <label htmlFor="phone" className="font-medium">
           رقم جوالك
         </label>
         <input
@@ -47,7 +47,7 @@ export function WelcomeForm() {
         </p>
       </div>
 
-      <p className="rounded-card bg-surface p-4 font-semibold">ما بتقدر تغيّر اختيارك بعدين</p>
+      <p className="rounded-card bg-surface p-4 font-medium">ما بتقدر تغيّر اختيارك بعدين</p>
 
       {state?.error && (
         <p role="alert" className="text-danger">
@@ -58,7 +58,7 @@ export function WelcomeForm() {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 w-full rounded-control bg-accent px-4 py-3 font-semibold text-on-accent disabled:opacity-60"
+        className="min-h-11 w-full rounded-control bg-accent px-4 py-3 font-bold text-on-accent disabled:opacity-60"
       >
         يلا نبلّش
       </button>

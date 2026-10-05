@@ -72,14 +72,16 @@ Chrome.
 
 ## Fonts
 
-**Use the system font stack and download no web fonts.** That saves data, renders
-instantly, and works offline:
+**Use Tajawal, self-hosted through `next/font/google`.**
+- Weights 400, 500 and 700; subsets `arabic` and `latin`; `display: "swap"`.
+- It's exposed as a CSS variable, with the system stack as fallback.
+- The font files ship from our own origin, so the service worker caches them and the app
+  reads well offline.
+- Ahmed chose it over the system fonts, which looked compressed in the QA screenshots.
 
 ```css
-font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Noto Naskh Arabic", Tahoma, sans-serif;
+font-family: var(--font-tajawal), system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
 ```
-
-This deliberately overrides `pwa-rtl` P-805 (bundled Arabic web fonts) for this project.
 
 ## Design tokens
 

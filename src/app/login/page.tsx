@@ -20,7 +20,7 @@ export default async function LoginPage() {
         <button
           type="submit"
           disabled={!googleEnabled}
-          className="min-h-11 w-full rounded-control bg-accent px-4 py-3 font-semibold text-on-accent disabled:opacity-40"
+          className="min-h-11 w-full rounded-control bg-accent px-4 py-3 font-bold text-on-accent disabled:opacity-40"
         >
           كمّل مع <bdi>Google</bdi>
         </button>
