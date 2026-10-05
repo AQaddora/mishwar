@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import type { ReactNode } from "react";
+import { OutboxProvider } from "@/components/OutboxStatus";
 import { TabBar, type TabRole } from "@/components/TabBar";
 import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
@@ -43,7 +44,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
       <body>
-        {children}
+        <OutboxProvider accountId={user?.id ?? null}>{children}</OutboxProvider>
         <TabBar role={role} />
       </body>
     </html>
