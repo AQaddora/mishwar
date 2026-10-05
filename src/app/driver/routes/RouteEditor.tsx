@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { MapView } from "@/components/MapView";
 import { SaveNote, useOutbox } from "@/components/OutboxStatus";
 import { Sheet } from "@/components/Sheet";
 import { MAX_STOPS, validateStops } from "@/lib/driver-rules";
 import { newId, type Outcome } from "@/lib/outbox";
-import { KIND_AR, normalizeArabic, type PickPlace } from "@/lib/places";
+import { getPlace, KIND_AR, normalizeArabic, type PickPlace } from "@/lib/places";
 import { formatNumber } from "@/lib/time";
 
 
@@ -38,6 +39,15 @@ export function RouteEditor({
     const q = normalizeArabic(query);
     return places.filter((p) => !stops.includes(p.id) && (!q || normalizeArabic(p.nameAr).includes(q))).slice(0, 60);
   }, [places, stops, query]);
+
+  // The stops on a small map, joined stop to stop in the driver's order. Read-only.
+  const preview = useMemo(() => {
+    const points = stops.map((placeId) => getPlace(placeId)).filter((p) => p !== undefined);
+    return {
+      markers: points.map((p, index) => ({ id: p.id, lat: p.lat, lon: p.lon, label: p.nameAr, text: formatNumber(index + 1), tone: "stop" as const })),
+      line: points.map((p) => [p.lat, p.lon] as [number, number]),
+    };
+  }, [stops]);
 
   function move(index: number, by: number) {
     setStops((old) => {
@@ -105,6 +115,7 @@ export function RouteEditor({
             ))}
           </ol>
         )}
+        {stops.length >= 2 && <MapView markers={preview.markers} line={preview.line} fit="markers" className="h-56" />}
         <p className="text-caption text-text-muted">الخط بيمشي رايح جاي على نفس المواقف.</p>
         {stops.length < MAX_STOPS && (
           <button type="button" onClick={() => setPicking(true)} className={secondary}>

@@ -31,5 +31,7 @@ export async function POST(request: Request): Promise<Response> {
   if (vehicle.photos.length >= MAX_PHOTOS) return Response.json({ error: "too_many" }, { status: 422 });
 
   await prisma.photo.create({ data: { vehicleId: vehicle.id, hash, mime: "image/jpeg", bytes } });
+  // Touch the vehicle, so the next sync tells phones about the new photo hash.
+  await prisma.vehicle.update({ where: { id: vehicle.id }, data: { updatedAt: new Date() } });
   return Response.json({ hash });
 }

@@ -102,7 +102,7 @@ Approved 2026-10-05. Time box for all seven milestones: **2 hours**.
     - week schedule (days, hours, route per day).
   - **See:** vehicle screen with fake demo photos; route with an ordered Arabic stop list;
     a week grid starting Saturday.
-- [ ] **M3: Rider map and search** (`m3-map`, 20 min)
+- [x] **M3: Rider map and search** (`m3-map`, 20 min)
   - **Build:**
     - MapLibre with a Gaza map file the app serves itself, Arabic labels, OSM credit;
     - the driver's driving screen (GPS, screen kept awake);

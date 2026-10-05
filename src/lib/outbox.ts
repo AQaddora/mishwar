@@ -45,6 +45,11 @@ export async function ensureAccount(accountId: string | null): Promise<void> {
     await Promise.all([idbClear("outbox"), idbClear("photos"), idbClear("data")]);
     await Promise.all([setMeta("cursor", null), setMeta("lastSyncAt", null)]);
   }
+  // The pages the service worker kept were rendered for the previous account (or for a
+  // guest): drop them, so nobody is shown someone else's screens offline.
+  try {
+    navigator.serviceWorker?.controller?.postMessage({ type: "purge-pages" });
+  } catch {}
   await setMeta("accountId", accountId);
   await notify();
 }

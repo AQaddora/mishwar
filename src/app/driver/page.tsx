@@ -43,6 +43,12 @@ export default async function DriverTodayPage() {
         )}
       </section>
       <Link
+        href="/driver/drive"
+        className="mt-4 flex min-h-11 items-center justify-center rounded-control bg-accent px-4 py-3 font-bold text-on-accent"
+      >
+        أنا سايق
+      </Link>
+      <Link
         href="/driver/schedule"
         className="mt-4 flex min-h-11 items-center justify-between gap-3 rounded-card bg-surface px-4 py-3"
       >

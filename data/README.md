@@ -7,6 +7,7 @@ typed into the code.
 |---|---|---|
 | `gazetteer.json` | Named places in the Gaza Strip, copied from OpenStreetMap: towns, neighbourhoods and camps, junctions, squares, taxi and bus stands, hospitals, universities, markets | Nobody by hand. Regenerate it |
 | `places-extra.json` | Places OSM doesn't have yet, checked on the ground | Ahmed, by hand |
+| `gaza-strip.json` | The outline of the Gaza Strip from OpenStreetMap (relation 1473938). The map covers everything outside it | Nobody by hand. `npm run strip-outline` |
 
 ## Refresh from OpenStreetMap
 

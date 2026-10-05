@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { getPlace, placeName } from "@/lib/places";
 import {
+  inMaintenance,
+  isRunning,
   toRouteStops,
   validateMaintenance,
   validateSchedule,
@@ -11,6 +13,7 @@ import {
   type ScheduleDayInput,
   type VehicleType,
 } from "@/lib/driver-rules";
+import { gazaNow } from "@/lib/time";
 import { Reject, type Actor, type Handler } from "@/server/outbox";
 
 function requireDriver(actor: Actor) {
@@ -49,6 +52,8 @@ const maintenanceSet: Handler = async (actor, p) => {
 const photoRemove: Handler = async (actor, p) => {
   requireDriver(actor);
   await prisma.photo.deleteMany({ where: { hash: String(p.hash), vehicle: { driverId: actor.id } } });
+  // Touch the vehicle, so the next sync tells phones its photo list changed.
+  await prisma.vehicle.updateMany({ where: { driverId: actor.id }, data: { updatedAt: new Date() } });
   return null;
 };
 
@@ -127,7 +132,43 @@ const scheduleSave: Handler = async (actor, p) => {
   return null;
 };
 
+// «ابدأ الرحلة»: opens the driver's trip. One open trip per driver: starting again while
+// one is open returns the open one. The route is today's route from the schedule, or the
+// default route when the driver starts outside the schedule.
+const tripStart: Handler = async (actor, p) => {
+  requireDriver(actor);
+  const id = String(p.id ?? "");
+  if (!/^[0-9a-f-]{16,64}$/i.test(id)) throw new Reject("invalid", "الرحلة مش مزبوطة");
+  const now = gazaNow();
+  const [vehicle, routes, schedule, open] = await Promise.all([
+    prisma.vehicle.findUnique({ where: { driverId: actor.id } }),
+    prisma.route.findMany({ where: { driverId: actor.id, deletedAt: null }, select: { id: true, isDefault: true } }),
+    prisma.scheduleDay.findMany({ where: { driverId: actor.id } }),
+    prisma.trip.findFirst({ where: { driverId: actor.id, endedAt: null } }),
+  ]);
+  if (open) return { id: open.id };
+  if (!vehicle) throw new Reject("no_vehicle", "سجّل سيارتك أول");
+  if (inMaintenance(vehicle, now.day)) throw new Reject("maintenance", "السيارة بالتصليح");
+  const state = isRunning({ vehicle, schedule, routes }, now);
+  const routeId = state.running ? state.routeId : routes.find((r) => r.isDefault)?.id;
+  if (!routeId) throw new Reject("no_route", "ضيف خط عشان تبلّش");
+  await prisma.trip.create({ data: { id, driverId: actor.id, routeId, day: now.day } });
+  return { id };
+};
+
+// «خلّصت الرحلة»: closes the trip and deletes the vehicle's position. No history is kept.
+const tripEnd: Handler = async (actor) => {
+  requireDriver(actor);
+  await prisma.$transaction([
+    prisma.trip.updateMany({ where: { driverId: actor.id, endedAt: null }, data: { endedAt: new Date() } }),
+    prisma.vehiclePosition.deleteMany({ where: { vehicle: { driverId: actor.id } } }),
+  ]);
+  return null;
+};
+
 export const handlers: Record<string, Handler> = {
+  "trip.start": tripStart,
+  "trip.end": tripEnd,
   "vehicle.save": vehicleSave,
   "maintenance.set": maintenanceSet,
   "photo.remove": photoRemove,

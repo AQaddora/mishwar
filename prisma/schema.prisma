@@ -30,6 +30,7 @@ model User {
   routes        Route[]
   scheduleDays  ScheduleDay[]
   outboxEntries OutboxEntry[]
+  trips         Trip[]
 }
 
 model Account {
@@ -83,6 +84,7 @@ model Vehicle {
   updatedAt        DateTime    @updatedAt
   driver           User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
   photos           Photo[]
+  position         VehiclePosition?
 }
 
 // Photos live in Postgres: the container disk is wiped on every deploy.
@@ -112,6 +114,7 @@ model Route {
   driver    User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
   stops     RouteStop[]
   days      ScheduleDay[]
+  trips     Trip[]
 
   @@index([driverId])
 }
@@ -154,4 +157,32 @@ model OutboxEntry {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// A trip is the time between the driver's «ابدأ الرحلة» and «خلّصت الرحلة».
+// At most one open trip (endedAt null) per driver. Bookings and history hang on it later.
+model Trip {
+  id        String    @id
+  driverId  String
+  routeId   String
+  // Local calendar day in Asia/Gaza, "YYYY-MM-DD".
+  day       String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  driver    User      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  route     Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, endedAt])
+}
+
+// The latest GPS point of a vehicle, and nothing else: one row per vehicle, overwritten
+// on every update and deleted when the trip ends. Never a history.
+model VehiclePosition {
+  vehicleId String   @id
+  lat       Float
+  lon       Float
+  // Metres per second, as the phone reports it. Null when it reports none.
+  speed     Float?
+  at        DateTime
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
