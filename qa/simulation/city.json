@@ -1,0 +1,261 @@
+{
+  "about": "The simulated city. Every place is an id from data/gazetteer.json (or data/places-extra.json). The names next to the ids are only notes for the reader: the app shows the name from the data file. After editing, run: npm test (it names any id that no longer exists). Route 1 and route 3 share جباليا on purpose: that is where the planner's change of vehicle happens.",
+  "routes": [
+    {
+      "name": "خط صلاح الدين (محاكاة)",
+      "stops": [
+        {
+          "id": "node/3007045042",
+          "note": "جباليا"
+        },
+        {
+          "id": "node/13354378801",
+          "note": "الشجاعية"
+        },
+        {
+          "id": "node/11331930581",
+          "note": "مفترق نتساريم"
+        },
+        {
+          "id": "node/505015391",
+          "note": "البريج"
+        },
+        {
+          "id": "node/505035532",
+          "note": "دير البلح"
+        },
+        {
+          "id": "node/505115716",
+          "note": "القرارة"
+        },
+        {
+          "id": "node/299944872",
+          "note": "خان يونس"
+        },
+        {
+          "id": "node/322022888",
+          "note": "رفح"
+        }
+      ]
+    },
+    {
+      "name": "خط الرشيد عالبحر (محاكاة)",
+      "stops": [
+        {
+          "id": "node/504259697",
+          "note": "مخيّم الشاطئ"
+        },
+        {
+          "id": "node/11300367246",
+          "note": "الرمال الجنوبي"
+        },
+        {
+          "id": "node/11300345272",
+          "note": "الشيخ عجلين"
+        },
+        {
+          "id": "node/8236983638",
+          "note": "الزهراء"
+        },
+        {
+          "id": "node/505041386",
+          "note": "مخيّم دير البلح"
+        },
+        {
+          "id": "node/11408821425",
+          "note": "المواصي"
+        }
+      ]
+    },
+    {
+      "name": "خط بيت لاهيا - الزيتون (محاكاة)",
+      "stops": [
+        {
+          "id": "node/503991719",
+          "note": "بيت لاهيا"
+        },
+        {
+          "id": "node/3007045042",
+          "note": "جباليا"
+        },
+        {
+          "id": "node/773667482",
+          "note": "الشيخ رضوان"
+        },
+        {
+          "id": "node/504266619",
+          "note": "غزة"
+        },
+        {
+          "id": "node/11298850625",
+          "note": "الزيتون"
+        }
+      ]
+    },
+    {
+      "name": "خط المخيمات الوسطى (محاكاة)",
+      "stops": [
+        {
+          "id": "node/505041386",
+          "note": "مخيّم دير البلح"
+        },
+        {
+          "id": "node/505035532",
+          "note": "دير البلح"
+        },
+        {
+          "id": "node/776438083",
+          "note": "الزوايده"
+        },
+        {
+          "id": "node/505034839",
+          "note": "مخيّم البريج"
+        },
+        {
+          "id": "node/505015391",
+          "note": "البريج"
+        }
+      ]
+    },
+    {
+      "name": "خط خان يونس - خزاعة (محاكاة)",
+      "stops": [
+        {
+          "id": "node/299944872",
+          "note": "خان يونس"
+        },
+        {
+          "id": "node/329769893",
+          "note": "بني سهيلا"
+        },
+        {
+          "id": "node/326040099",
+          "note": "عبسان الكبيرة"
+        },
+        {
+          "id": "node/331841696",
+          "note": "خزاعة"
+        }
+      ]
+    },
+    {
+      "name": "خط رفح - خان يونس من المواصي (محاكاة)",
+      "stops": [
+        {
+          "id": "node/322022888",
+          "note": "رفح"
+        },
+        {
+          "id": "node/329780744",
+          "note": "معسكر تل السلطان"
+        },
+        {
+          "id": "node/11408821425",
+          "note": "المواصي"
+        },
+        {
+          "id": "node/7632371785",
+          "note": "مخيم خان يونس"
+        },
+        {
+          "id": "node/299944872",
+          "note": "خان يونس"
+        }
+      ]
+    }
+  ],
+  "vehicles": [
+    {
+      "type": "ajala",
+      "seats": 10
+    },
+    {
+      "type": "car",
+      "seats": 4
+    },
+    {
+      "type": "bus",
+      "seats": 20
+    },
+    {
+      "type": "car",
+      "seats": 7
+    },
+    {
+      "type": "ajala",
+      "seats": 12
+    },
+    {
+      "type": "bus",
+      "seats": 14
+    }
+  ],
+  "journeys": [
+    {
+      "kind": "direct",
+      "from": "node/13354378801",
+      "to": "node/299944872",
+      "note": "الشجاعية ← خان يونس، على صلاح الدين"
+    },
+    {
+      "kind": "direct",
+      "from": "node/11408821425",
+      "to": "node/504259697",
+      "note": "المواصي ← مخيّم الشاطئ، عكس اتجاه خط الرشيد"
+    },
+    {
+      "kind": "direct",
+      "from": "node/503991719",
+      "to": "node/504266619",
+      "note": "بيت لاهيا ← غزة"
+    },
+    {
+      "kind": "direct",
+      "from": "node/322022888",
+      "to": "node/3007045042",
+      "note": "رفح ← جباليا، كل صلاح الدين"
+    },
+    {
+      "kind": "change",
+      "from": "node/503991719",
+      "to": "node/322022888",
+      "note": "بيت لاهيا ← رفح: خط بيت لاهيا لحد جباليا، وبعدين صلاح الدين"
+    },
+    {
+      "kind": "none",
+      "from": "node/503998551",
+      "to": "node/331841696",
+      "note": "بيت حانون ← خزاعة: بيت حانون مش على أي خط"
+    }
+  ],
+  "bookings": {
+    "about": "Who books what. «main» is on driver 1's route (the first route above); each rider in turn takes the next journey. «overbook» is on driver 2's route (the second route above): more riders than seats ask for it at the same moment.",
+    "main": [
+      {
+        "from": "node/3007045042",
+        "to": "node/299944872",
+        "note": "جباليا ← خان يونس"
+      },
+      {
+        "from": "node/13354378801",
+        "to": "node/322022888",
+        "note": "الشجاعية ← رفح"
+      },
+      {
+        "from": "node/322022888",
+        "to": "node/505035532",
+        "note": "رفح ← دير البلح (اتجاه الرجعة)"
+      },
+      {
+        "from": "node/3007045042",
+        "to": "node/505015391",
+        "note": "جباليا ← البريج"
+      }
+    ],
+    "overbook": {
+      "from": "node/11408821425",
+      "to": "node/504259697",
+      "note": "المواصي ← مخيّم الشاطئ"
+    }
+  }
+}

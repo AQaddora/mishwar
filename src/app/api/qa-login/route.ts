@@ -11,16 +11,32 @@ const DEMO = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// The simulation (qa/simulation) needs many people: ?n=1..99 signs in a numbered one.
+// Their emails start with "sim-", which is what /api/qa-cleanup removes, and their first
+// name is «محاكاة-N», so nobody mistakes them for real people on a screen.
+function simUser(role: "driver" | "rider", n: number) {
+  const nn = String(n).padStart(2, "0");
+  return role === "driver"
+    ? { email: `sim-driver-${n}@mishwar.test`, name: `محاكاة-${n} (سوّاق)`, phone: `05900001${nn}` }
+    : { email: `sim-rider-${n}@mishwar.test`, name: `محاكاة-${n} (راكب)`, phone: `05900002${nn}` };
+}
+
 export async function GET(request: Request): Promise<Response> {
   if (process.env.QA_MODE !== "1") return new Response("Not Found", { status: 404 });
+  // A QA app on the public internet (the simulation's staging copy) sets QA_LOGIN_KEY.
+  const { qaKeyOk } = await import("@/server/qa-key");
+  if (!qaKeyOk(request)) return new Response("Not Found", { status: 404 });
 
-  const role = new URL(request.url).searchParams.get("role");
+  const params = new URL(request.url).searchParams;
+  const role = params.get("role");
   if (role !== "driver" && role !== "rider") {
     return new Response("role must be driver or rider", { status: 400 });
   }
+  const n = params.get("n");
+  if (n !== null && !/^[1-9]\d?$/.test(n)) return new Response("n must be 1 to 99", { status: 400 });
 
   const { prisma } = await import("@/lib/prisma");
-  const demo = DEMO[role];
+  const demo = n === null ? DEMO[role] : simUser(role, Number(n));
   const user = await prisma.user.upsert({
     where: { email: demo.email },
     update: { role, name: demo.name, phone: demo.phone },
