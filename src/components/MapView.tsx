@@ -9,6 +9,7 @@
 import "leaflet/dist/leaflet.css";
 import type { LayerGroup, Map as LeafletMap, TileLayer } from "leaflet";
 import { useEffect, useRef } from "react";
+import { closeMap } from "@/lib/map-close";
 import { GAZA_BBOX, PLACES } from "@/lib/places";
 import outline from "../../data/gaza-strip.json";
 
@@ -88,7 +89,7 @@ export function MapView({
     return () => {
       alive = false;
       if (redraw) navigator.serviceWorker?.removeEventListener("controllerchange", redraw);
-      map.current?.map.remove();
+      if (map.current) closeMap(map.current.map);
       map.current = null;
     };
   }, []);
