@@ -161,6 +161,13 @@ The fix is checked twice, by machines, before and after a person looks:
   the step pass and **closes the issue itself**, with a "verified fixed" comment. If the
   step still fails, the issue stays open and gets "seen again".
 
+A passing step alone is not proof: some errors come and go. So the filer says "verified
+fixed" only when a fix for that issue was merged (the `fix-issue-<N>` branch, or a pull
+request that says "Closes #N") **and** the step passes. With no merged fix the issue
+stays open with a note, and a failure that returns reopens its closed issue instead of
+filing a twin. We learned this the first night: an on-and-off map error closed its own
+issue twice before the rule existed.
+
 ## 7. Deploy on merge
 
 One more poller, same idea:
