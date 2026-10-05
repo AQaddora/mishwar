@@ -59,3 +59,19 @@ export async function getMeta<T>(name: string): Promise<T | undefined> {
 export async function setMeta(name: string, value: unknown): Promise<void> {
   await idbPut("meta", { name, value });
 }
+
+/** Several puts and deletes in one transaction: all of them land, or none. */
+export function idbBatch(store: StoreName, puts: unknown[], deletes: IDBValidKey[] = []): Promise<void> {
+  return openDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(store, "readwrite");
+        const s = tx.objectStore(store);
+        for (const key of deletes) s.delete(key);
+        for (const value of puts) s.put(value);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      }),
+  );
+}

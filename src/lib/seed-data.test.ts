@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateStops } from "./driver-rules";
 import { EXTRACT_DATE, GAZA_BBOX, getPlace, PLACES } from "./places";
-import { SEED_ROUTE } from "../../scripts/qa-seed.mjs";
+import { SEED_FLEET, SEED_ROUTE } from "../../scripts/qa-seed.mjs";
 
 describe("gazetteer (data/gazetteer.json)", () => {
   it("has places, each traceable to an OSM element", () => {
@@ -34,5 +34,11 @@ describe("QA seed route", () => {
   it("runs north to south, as Salah al-Din Road does", () => {
     const lats = (SEED_ROUTE.stops as string[]).map((id) => getPlace(id)!.lat);
     expect([...lats].sort((a, b) => b - a)).toEqual(lats);
+  });
+  it("puts every other demo driver on a valid route of real places, standing on one of its stops", () => {
+    for (const d of SEED_FLEET as { route: { stops: string[] }; at: { stop: number } }[]) {
+      expect(validateStops(d.route.stops, (id) => getPlace(id) !== undefined)).toBeNull();
+      expect(getPlace(d.route.stops[d.at.stop])).toBeDefined();
+    }
   });
 });

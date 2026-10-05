@@ -16,6 +16,8 @@ Mishwar has a brand colour. Every text pair below meets 4.5:1 contrast.
 | `--on-accent` | `#FFFFFF` | `#000000` | Text on accent |
 | `--danger` | `#C62828` | `#FF6B6B` | Destructive actions, failures |
 | `--pending` | `#8A6D00` | `#FFD60A` | Saved locally but not yet sent |
+| `--map-ink` | `#1C1C1E` | `#1C1C1E` | Route lines and stop pins drawn on the map. The map tiles are always light, so it doesn't flip |
+| `--map-paper` | `#FFFFFF` | `#FFFFFF` | The inside of a stop pin on the map |
 
 ## Spacing (Tailwind steps only)
 

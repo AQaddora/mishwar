@@ -69,3 +69,32 @@ export function formatTime(time: string): string {
   const [h, m] = time.split(":");
   return `${Number(h)}:${m}`;
 }
+
+/** "2026-10-05" + 1 → "2026-10-06". Pure calendar arithmetic, no time zone involved. */
+export function addDays(day: string, n: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** ISO weekday (Monday = 1 … Sunday = 7) of a calendar day. */
+export function weekdayOf(day: string): number {
+  return new Date(`${day}T00:00:00Z`).getUTCDay() || 7;
+}
+
+// «قبل ٣ دقايق»: how old something is, in the words people use. Used for a vehicle's last
+// position and for «آخر تحديث».
+export function formatAge(at: Date | string | number, now: Date | number = Date.now()): string {
+  const minutes = Math.floor((Number(new Date(now)) - Number(new Date(at))) / 60000);
+  if (minutes < 1) return "هلأ";
+  if (minutes === 1) return "قبل دقيقة";
+  if (minutes === 2) return "قبل دقيقتين";
+  if (minutes <= 10) return `قبل ${formatNumber(minutes)} دقايق`;
+  if (minutes < 60) return `قبل ${formatNumber(minutes)} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours === 1) return "قبل ساعة";
+  if (hours === 2) return "قبل ساعتين";
+  if (hours <= 10) return `قبل ${formatNumber(hours)} ساعات`;
+  if (hours < 48) return `قبل ${formatNumber(hours)} ساعة`;
+  return `قبل ${formatNumber(Math.floor(hours / 24))} يوم`;
+}
