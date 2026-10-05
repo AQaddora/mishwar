@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useOutbox } from "@/components/OutboxStatus";
 import { seatsText } from "@/lib/booking-copy";
-import { MAX_SEATS_PER_BOOKING } from "@/lib/booking-rules";
+import { bookBoxView, MAX_SEATS_PER_BOOKING } from "@/lib/booking-rules";
 import { newId, type Outcome } from "@/lib/outbox";
 import { refreshData } from "@/lib/use-public-data";
 import { MapView, type MapMarker } from "@/components/MapView";
@@ -116,8 +116,14 @@ function BookBox({ leg, time }: { leg: PlanLeg; /** The time the rider asked abo
       </Link>
     );
   }
-  if (outcome && outcome.status !== "rejected") {
-    const waiting = outcome.status === "queued";
+  const view = bookBoxView({ outcome: outcome?.status ?? null, free: leg.vehicle.free, open: openBox });
+  const refusal = outcome?.status === "rejected" && (
+    <p role="alert" className="text-danger">
+      {outcome.message} {outcome.reason === "seats_gone" && "سكّر وشوف الخيارات الثانية."}
+    </p>
+  );
+  if (view === "done") {
+    const waiting = outcome?.status === "queued";
     return (
       <div role="status" className="flex flex-col gap-2 rounded-card bg-bg p-3">
         <p className={`font-bold ${waiting ? "text-pending" : "text-accent"}`}>{waiting ? "مستني ينبعت" : "تأكد حجزك"}</p>
@@ -128,8 +134,9 @@ function BookBox({ leg, time }: { leg: PlanLeg; /** The time the rider asked abo
       </div>
     );
   }
-  if (leg.vehicle.free <= 0) return <p className="rounded-card bg-bg p-3 text-danger">ما في كراسي فاضية بهالسيارة هلأ.</p>;
-  if (!openBox) {
+  if (view === "refused") return <div className="rounded-card bg-bg p-3">{refusal}</div>;
+  if (view === "full") return <p className="rounded-card bg-bg p-3 text-danger">ما في كراسي فاضية بهالسيارة هلأ.</p>;
+  if (view === "closed") {
     return (
       <button type="button" onClick={() => setOpenBox(true)} className={solid}>
         احجز مع {leg.vehicle.driverName}
@@ -169,11 +176,7 @@ function BookBox({ leg, time }: { leg: PlanLeg; /** The time the rider asked abo
           +
         </button>
       </div>
-      {outcome?.status === "rejected" && (
-        <p role="alert" className="text-danger">
-          {outcome.message} {outcome.reason === "seats_gone" && "سكّر وشوف الخيارات الثانية."}
-        </p>
-      )}
+      {refusal}
       <button type="button" disabled={busy} onClick={() => void book()} className={solid}>
         أكّد الحجز
       </button>

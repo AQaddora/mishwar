@@ -86,6 +86,17 @@ export function decideBooking(request: BookingRequest, driver: DriverState, take
   return { ok: true, fromPlaceId: from, toPlaceId: to };
 }
 
+// What the «احجز» box shows. The server's answer to this rider's own tap comes first: a
+// refusal usually arrives together with fresh data saying the vehicle is now full, and
+// "full" must not hide why HIS booking failed (lost the race: «الكراسي خلصت قبل ما يوصل طلبك»).
+export type BookBoxView = "done" | "refused" | "full" | "closed" | "picker";
+
+export function bookBoxView(input: { outcome: string | null; free: number; open: boolean }): BookBoxView {
+  if (input.outcome && input.outcome !== "rejected") return "done";
+  if (input.free <= 0) return input.outcome === "rejected" ? "refused" : "full";
+  return input.open ? "picker" : "closed";
+}
+
 // A schedule or maintenance change against a booking that already exists. It survives
 // only if the driver still runs at its time and both its stops are on that day's route
 // (which may now be another route: then it moves there).
