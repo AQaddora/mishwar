@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Design tokens: .claude/skills/ios-native-feel/references/tokens.md */
+:root {
+  color-scheme: light dark;
+  --bg: #F2F2F7; --surface: #FFFFFF; --text: #1C1C1E; --text-muted: #6B6B70;
+  --separator: #D1D1D6; --accent: #0A7D5A; --on-accent: #FFFFFF;
+  --danger: #C62828; --pending: #8A6D00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000; --surface: #1C1C1E; --text: #FFFFFF; --text-muted: #A1A1A6;
+    --separator: #38383A; --accent: #3DD68C; --on-accent: #000000;
+    --danger: #FF6B6B; --pending: #FFD60A;
+  }
+}
+@theme inline {
+  --color-bg: var(--bg); --color-surface: var(--surface); --color-text: var(--text);
+  --color-text-muted: var(--text-muted); --color-separator: var(--separator);
+  --color-accent: var(--accent); --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger); --color-pending: var(--pending);
+  --radius-control: 8px; --radius-card: 12px; --radius-sheet: 20px;
+  --text-large-title: 34px; --text-large-title--font-weight: 700;
+  --text-title: 22px; --text-title--font-weight: 700;
+  --text-body: 17px; --text-caption: 13px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Noto Naskh Arabic", Tahoma, sans-serif;
+}
+
+@layer base {
+  html {
+    overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html,
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Noto Naskh Arabic", Tahoma, sans-serif;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Below 16px iOS Safari zooms on focus. */
+  input,
+  select,
+  textarea {
+    font-size: 17px;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* The tap highlight is off, so every tap needs its own :active feedback. */
+  a:active,
+  button:not(:disabled):active {
+    opacity: 0.6;
+  }
+}
