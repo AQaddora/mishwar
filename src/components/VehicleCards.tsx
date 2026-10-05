@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { VEHICLE_TYPE_AR } from "@/lib/driver-rules";
-import { autoTransferAllowed, loadPhoto } from "@/lib/photos";
+import { autoTransferAllowed, loadPhoto, PHOTO_CACHE, photoUrl } from "@/lib/photos";
 import { placeName } from "@/lib/places";
 import type { VehicleNow } from "@/lib/rider-rules";
 import { formatTime } from "@/lib/time";
@@ -77,6 +77,20 @@ export function VehicleCard({
 
 export function VehicleSheet({ item, now, showPosition, onClose }: { item: VehicleNow | null; now: number; showPosition: boolean; onClose: () => void }) {
   const [download, setDownload] = useState(false);
+  // Nothing to offer when every photo is already on this phone.
+  const [allCached, setAllCached] = useState(false);
+  const hashes = item?.vehicle.photos.join(",") ?? "";
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const cache = await caches.open(PHOTO_CACHE).catch(() => null);
+      const hits = await Promise.all(hashes.split(",").filter(Boolean).map((h) => cache?.match(photoUrl(h))));
+      if (alive) setAllCached(hits.length > 0 && hits.every(Boolean));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [hashes]);
   const title = item ? `${VEHICLE_TYPE_AR[item.vehicle.type]} · ${item.vehicle.driverName}` : "";
   return (
     <Sheet
@@ -105,7 +119,7 @@ export function VehicleSheet({ item, now, showPosition, onClose }: { item: Vehic
                   <VehiclePhoto key={hash} hash={hash} download={download} className="aspect-4/3 w-full" />
                 ))}
               </div>
-              {!download && (
+              {!download && !allCached && (
                 <button type="button" onClick={() => setDownload(true)} className="min-h-11 w-full rounded-control border border-separator bg-surface px-4 py-2 font-medium text-accent">
                   نزّل الصور هلأ
                 </button>

@@ -18,6 +18,7 @@ Mishwar has a brand colour. Every text pair below meets 4.5:1 contrast.
 | `--pending` | `#8A6D00` | `#FFD60A` | Saved locally but not yet sent |
 | `--map-ink` | `#1C1C1E` | `#1C1C1E` | Route lines and stop pins drawn on the map. The map tiles are always light, so it doesn't flip |
 | `--map-paper` | `#FFFFFF` | `#FFFFFF` | The inside of a stop pin on the map |
+| `--map-mute` | `#E5E5EA` | `#E5E5EA` | The mask over everything outside the Gaza Strip on the map |
 
 ## Spacing (Tailwind steps only)
 

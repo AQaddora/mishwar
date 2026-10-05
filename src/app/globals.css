@@ -7,7 +7,7 @@
   --separator: #D1D1D6; --accent: #0A7D5A; --on-accent: #FFFFFF;
   --danger: #C62828; --pending: #8A6D00;
   /* Drawn on the map. The map tiles are always light, so this does not flip in dark mode. */
-  --map-ink: #1C1C1E; --map-paper: #FFFFFF;
+  --map-ink: #1C1C1E; --map-paper: #FFFFFF; --map-mute: #E5E5EA;
   /* Fixed sizes. The tab bar is this tall plus the home-indicator inset. */
   --tab-bar-height: 49px;
   --tab-bar-space: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
@@ -134,6 +134,15 @@
   border-color: var(--map-ink);
   color: var(--map-ink);
 }
+/* Everything outside the Gaza Strip on the map (see MapView). */
+.map-mask {
+  fill: var(--map-mute);
+  fill-opacity: 1;
+  fill-rule: evenodd;
+  stroke: var(--map-ink);
+  stroke-width: 1.5;
+  stroke-opacity: 0.45;
+}
 .map-line {
   stroke: var(--map-ink);
   stroke-width: 4;
@@ -141,7 +150,7 @@
   fill: none;
 }
 .leaflet-container {
-  background: var(--separator);
+  background: var(--map-mute);
   font-family: inherit;
 }
 .leaflet-container .leaflet-control-attribution {

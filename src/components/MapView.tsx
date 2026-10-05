@@ -1,12 +1,16 @@
 "use client";
 
-// The one map in the app: Leaflet over OpenStreetMap's own tiles (their labels in the
-// Strip are already Arabic). Leaflet touches `window`, so it is imported inside an
-// effect and never runs on the server. Markers are our own DOM pins, styled by tokens.
+// The one map in the app: Leaflet over OpenStreetMap's own tiles. Inside the Strip their
+// labels are Arabic; around it they are not, so everything outside the Strip's outline
+// (data/gaza-strip.json, from OSM) is covered by a plain mask. Riders see their own map
+// and nothing they can't read.
+// Leaflet touches `window`, so it is imported inside an effect and never runs on the
+// server. Markers are our own DOM pins, styled by tokens.
 import "leaflet/dist/leaflet.css";
 import type { LayerGroup, Map as LeafletMap, TileLayer } from "leaflet";
 import { useEffect, useRef } from "react";
 import { GAZA_BBOX } from "@/lib/places";
+import outline from "../../data/gaza-strip.json";
 
 export type MapMarker = {
   id: string;
@@ -69,6 +73,10 @@ export function MapView({
         crossOrigin: true,
         maxZoom: 17,
       }).addTo(m);
+      // The mask: one big rectangle with the Strip cut out of it, drawn over the tiles
+      // and under the route line and the pins.
+      const world: [number, number][] = [[20, 20], [20, 50], [45, 50], [45, 20]];
+      L.polygon([world, outline.ring as [number, number][]], { className: "map-mask", interactive: false }).addTo(m);
       map.current = { map: m, layer: L.layerGroup().addTo(m), tiles, L };
       // The first time the service worker takes over, load the tiles on screen through it
       // (from the browser's own cache), so they are there when the network is not.

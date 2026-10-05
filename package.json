@@ -9,7 +9,8 @@
     "test": "vitest run",
     "lint": "eslint",
     "qa:seed": "prisma migrate deploy && node scripts/qa-seed.mjs",
-    "gazetteer": "node scripts/fetch-gazetteer.mjs"
+    "gazetteer": "node scripts/fetch-gazetteer.mjs",
+    "strip-outline": "node scripts/fetch-strip-outline.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
