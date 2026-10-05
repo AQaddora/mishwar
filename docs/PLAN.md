@@ -137,20 +137,46 @@ Approved 2026-10-05. Time box for all seven milestones: **2 hours**.
     - chat checked every 10 seconds;
     - accepting one offer declines the rest.
   - **See:** request form, offer cards with photos, a chat thread, an accepted offer.
-- [ ] **M7: History and ratings** (`m7-history`, 8 min)
+- [x] **M7: History and ratings** (`m7-history`, 8 min)
   - **Build:** history for both sides; 1–5 stars after a trip, both ways.
   - **See:** trip list, star sheet, a driver card with average rating.
 
-## Cut list (cut from the top when we're late)
+## What was really cut (as built, M1–M7)
 
-1. AI step in the planner (M4).
-2. Driver's one-tap "change today's route" on an off-route alert (M5). Riders are still
-   warned.
-3. Live location updates; one position per yes instead (M5).
-4. Chat on offers; the call button stands in (M6).
-5. Extra routes; default route only, so no per-day route change (M2).
-6. Rating averages on driver cards (M7).
-7. The nearby check on "Start trip"; time only (M5).
-8. Downloading the map for offline use; tiles are cached only as viewed (M3).
-9. Wi-Fi-only photo queue; upload on a tap instead (M2).
-10. Dark mode and the iPhone install sheet (M1).
+The first cut list was a plan for running late. This is what happened.
+
+**Cut:**
+
+- **Route fares** (all milestones): by decision, not for time. The only price is a
+  driver's quote on a special request.
+- **MapLibre with a map file the app serves itself, and offline map download** (M3): the
+  map is Leaflet over OpenStreetMap's own tiles, kept on the phone only as viewed. Areas
+  outside the Strip are greyed out.
+- **Picking stops by tapping the map** (M2): stops are picked from a searchable list of
+  OpenStreetMap places; the map shows them afterwards.
+- **A new route made on the spot inside the week schedule** (M2): make it in «خطوطي»
+  first.
+- **More than one change of vehicle** in the planner (M4).
+- **The driver's one-tap "change today's route"** on an off-route alert (M5). Riders are
+  still warned.
+- **The nearby check on «ابدأ الرحلة»** (M5): it goes by time only.
+- **The "N riders are affected" warning before saving** a schedule or maintenance change
+  (M5): the bookings are cancelled on save and the driver is told how many afterwards.
+- **Push notifications** (M5, M6, M7): people are told inside the app, at the next sync.
+- **Older chat messages on demand** (M6): a thread shows its newest 30.
+- **The rider's average shown to drivers, and a public list of comments** (M7): a comment
+  is read only by the person it is about.
+- **The iPhone install sheet, and dark mode beyond the colour tokens** (M1).
+
+**Built although it was on the cut list:**
+
+- The AI step in the planner (M4). It stays switched off until the server has an
+  `ANTHROPIC_API_KEY`; it has not been tried against the real service.
+- Live location updates while the rider's screen is open (M5).
+- Chat on offers (M6).
+- Extra routes and a different route per day (M2).
+- Rating averages on driver cards (M7).
+- The Wi-Fi-only photo queue (M2).
+
+**Never checked on a real phone by the fleet:** Google sign-in end to end, the camera,
+GPS while driving, the dialler coming back to the app, and installing to the home screen.

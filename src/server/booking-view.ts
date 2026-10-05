@@ -39,6 +39,8 @@ export type BookingRow = {
   route: { name: string; driver: { name: string | null; phone: string | null } };
   /** Newest first; only the newest is sent. */
   shares: ShareRow[];
+  /** The viewer's own rating of this booking, if the query asked for it. */
+  ratings?: unknown[];
 };
 
 // First name only. «أبو خالد» and «عبد الله» are one name, not two.
@@ -87,6 +89,7 @@ export function shapeBooking(b: BookingRow, viewerId: string, now: number): Sync
     ...(b.calledAt ? { called: true } : {}),
     ...(b.startedAt ? { startedAt: b.startedAt.toISOString() } : {}),
     ...(b.completedAt ? { completedAt: b.completedAt.toISOString() } : {}),
+    ...(b.completedAt && b.ratings?.length ? { rated: true } : {}),
     ...(b.offRouteNotifiedAt && !b.completedAt ? { offRoute: true } : {}),
     createdAt: b.createdAt.toISOString(),
     ...(share ? { share: shapeShare(share, forDriver, now) } : {}),

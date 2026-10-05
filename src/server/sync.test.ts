@@ -241,3 +241,19 @@ describe("special requests in the sync (M6)", () => {
     expect(JSON.stringify(out)).not.toContain("0590000002");
   });
 });
+
+describe("ratings in the sync (M7)", () => {
+  it("puts a driver's average and count on his vehicle, and nothing when nobody rated him", () => {
+    const rows = rowsFor();
+    const [first, second] = rows.vehicles;
+    const out = shapeSync({ ...rows, ratings: { [first.driverId]: { rating: 4.7, ratings: 3 } } }, T0);
+    expect(out.changes.vehicles.find((v) => v.id === first.id)).toMatchObject({ rating: 4.7, ratings: 3 });
+    expect(out.changes.vehicles.find((v) => v.id === second.id)).not.toHaveProperty("rating");
+  });
+
+  it("averages for every driver of a busy Strip keep the first page under 50 KB", () => {
+    const rows = rowsFor(296);
+    const ratings = Object.fromEntries(rows.vehicles.map((v, i) => [v.driverId, { rating: 3 + (i % 20) / 10, ratings: i + 1 }]));
+    expect(gz(shapeSync({ ...rows, ratings }, T0))).toBeLessThanOrEqual(50 * 1024);
+  });
+});

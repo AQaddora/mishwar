@@ -35,6 +35,8 @@ export type RequestRow = {
   createdAt: Date;
   rider: { name: string | null; phone: string | null };
   offers: OfferRow[];
+  /** The viewer's own rating of this private trip, if the query asked for it. */
+  ratings?: unknown[];
 };
 export type Viewer = { id: string; role: "rider" | "driver" | null };
 export type ShapedRequest = { request: SyncRequest; offers: SyncOffer[]; messages: SyncMessage[] };
@@ -57,6 +59,7 @@ export function shapeRequest(r: RequestRow, viewer: Viewer): ShapedRequest | nul
     ...(r.note ? { note: r.note } : {}),
     status: r.status as SyncRequest["status"],
     ...(r.completedAt ? { completedAt: r.completedAt.toISOString() } : {}),
+    ...(r.completedAt && r.ratings?.length ? { rated: true } : {}),
     createdAt: r.createdAt.toISOString(),
     ...(owner ? { mine: true } : { name: firstName(r.rider.name, "راكب") }),
     ...(!owner && ownOffer && phoneVisible(link(ownOffer, "driver")) && r.rider.phone ? { phone: r.rider.phone } : {}),

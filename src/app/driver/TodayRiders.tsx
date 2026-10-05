@@ -1,5 +1,6 @@
 "use client";
 
+import { RatingNotices } from "@/components/RatingNotices";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -70,6 +71,7 @@ export function TodayRiders({ hasOpenTrip, canDrive, openLocation }: { hasOpenTr
   return (
     <section className="mt-4 flex flex-col gap-3">
       {ready && <RequestNotices data={data} role="driver" now={now} />}
+      {ready && <RatingNotices data={data} role="driver" now={now} />}
       <h2 className="text-title">ركّاب اليوم</h2>
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />
       {!ready ? (

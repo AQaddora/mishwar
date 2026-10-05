@@ -1,5 +1,6 @@
 "use client";
 
+import { ratingText } from "@/lib/rating-rules";
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { VEHICLE_TYPE_AR } from "@/lib/driver-rules";
@@ -63,6 +64,9 @@ export function VehicleCard({
           <span className={`shrink-0 text-caption ${vehicle.free > 0 ? "text-accent" : "text-danger"}`}>{freeSeatsText(vehicle.free)}</span>
         </span>
         <span className="truncate">{route.name}</span>
+        {ratingText(vehicle.rating, vehicle.ratings) && (
+          <bdi className="text-caption text-text-muted">{ratingText(vehicle.rating, vehicle.ratings)}</bdi>
+        )}
         {showPosition ? (
           <span className={`text-caption ${position.fresh ? "text-accent" : "text-text-muted"}`}>{position.text}</span>
         ) : (

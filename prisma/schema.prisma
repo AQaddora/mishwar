@@ -15,27 +15,29 @@ enum Role {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
+  id              String           @id @default(cuid())
+  name            String?
+  email           String?          @unique
+  emailVerified   DateTime?
+  image           String?
   // Set once on /welcome and never changed.
-  role          Role?
-  phone         String?
-  createdAt     DateTime  @default(now())
-  accounts      Account[]
-  sessions      Session[]
-  vehicle       Vehicle?
-  routes        Route[]
-  scheduleDays  ScheduleDay[]
-  outboxEntries OutboxEntry[]
-  trips         Trip[]
-  bookings      Booking[]
-  locationShares LocationShare[]
-  requests      SpecialRequest[]
-  offers        Offer[]
-  messages      Message[]
+  role            Role?
+  phone           String?
+  createdAt       DateTime         @default(now())
+  accounts        Account[]
+  sessions        Session[]
+  vehicle         Vehicle?
+  routes          Route[]
+  scheduleDays    ScheduleDay[]
+  outboxEntries   OutboxEntry[]
+  trips           Trip[]
+  bookings        Booking[]
+  locationShares  LocationShare[]
+  requests        SpecialRequest[]
+  offers          Offer[]
+  messages        Message[]
+  ratingsGiven    Rating[]         @relation("ratingsGiven")
+  ratingsReceived Rating[]         @relation("ratingsReceived")
 }
 
 model Account {
@@ -78,16 +80,16 @@ enum VehicleType {
 
 // One vehicle per driver. Seats are whatever the driver sets.
 model Vehicle {
-  id               String      @id @default(cuid())
-  driverId         String      @unique
+  id               String           @id @default(cuid())
+  driverId         String           @unique
   type             VehicleType
   seats            Int
   // Out of service from this day (YYYY-MM-DD, Asia/Gaza). Null: in service.
   maintenanceFrom  String?
   // Last day out of service. Null with a from-day: until the driver says it's back.
   maintenanceUntil String?
-  updatedAt        DateTime    @updatedAt
-  driver           User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  updatedAt        DateTime         @updatedAt
+  driver           User             @relation(fields: [driverId], references: [id], onDelete: Cascade)
   // Set when a running vehicle with bookings is first seen more than 500 m from its route
   // line; cleared when it is back. Two minutes of it tells the booked riders (M5).
   offRouteSince    DateTime?
@@ -112,14 +114,14 @@ model Photo {
 
 // A driver keeps several routes; exactly one is the default. Each runs both ways.
 model Route {
-  id        String      @id
+  id        String        @id
   driverId  String
   name      String
-  isDefault Boolean     @default(false)
-  updatedAt DateTime    @updatedAt
+  isDefault Boolean       @default(false)
+  updatedAt DateTime      @updatedAt
   // Soft delete, so a deletion can reach phones through sync.
   deletedAt DateTime?
-  driver    User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driver    User          @relation(fields: [driverId], references: [id], onDelete: Cascade)
   stops     RouteStop[]
   days      ScheduleDay[]
   trips     Trip[]
@@ -222,7 +224,7 @@ model SearchLog {
 // "pending" exists only on the phone, while the booking waits in the outbox.
 // Live = confirmed or ready, and not completed. Completed = its trip ended (completedAt).
 model Booking {
-  id                 String    @id
+  id                 String          @id
   riderId            String
   driverId           String
   routeId            String
@@ -245,12 +247,13 @@ model Booking {
   startedAt          DateTime?
   completedAt        DateTime?
   offRouteNotifiedAt DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  rider              User      @relation(fields: [riderId], references: [id], onDelete: Cascade)
-  route              Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  trip               Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  rider              User            @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  route              Route           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  trip               Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
   shares             LocationShare[]
+  ratings            Rating[]
 
   @@index([riderId])
   @@index([driverId, day])
@@ -300,6 +303,7 @@ model SpecialRequest {
   updatedAt   DateTime  @updatedAt
   rider       User      @relation(fields: [riderId], references: [id], onDelete: Cascade)
   offers      Offer[]
+  ratings     Rating[]
 
   @@index([riderId])
   @@index([status, day])
@@ -335,4 +339,27 @@ model Message {
   sender   User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([offerId, sentAt])
+}
+
+// 1 to 5 stars, with an optional short comment, after a completed trip. Both ways: the
+// rider rates the driver and the driver rates the rider. Exactly one of bookingId and
+// requestId is set: a completed route booking, or a completed private trip. One rating
+// per trip per rater (the two unique pairs). The id comes from the phone.
+model Rating {
+  id        String          @id
+  raterId   String
+  rateeId   String
+  bookingId String?
+  requestId String?
+  stars     Int
+  comment   String?
+  createdAt DateTime        @default(now())
+  rater     User            @relation("ratingsGiven", fields: [raterId], references: [id], onDelete: Cascade)
+  ratee     User            @relation("ratingsReceived", fields: [rateeId], references: [id], onDelete: Cascade)
+  booking   Booking?        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  request   SpecialRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([raterId, bookingId])
+  @@unique([raterId, requestId])
+  @@index([rateeId])
 }

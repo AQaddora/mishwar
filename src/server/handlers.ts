@@ -16,6 +16,7 @@ import {
 import { gazaNow } from "@/lib/time";
 import { bookingHandlers, completeBookedRiders, recheckDriverBookings, startBookedRiders } from "@/server/booking-handlers";
 import { Reject, type Actor, type Handler } from "@/server/outbox";
+import { ratingHandlers } from "@/server/rating-handlers";
 import { requestHandlers } from "@/server/request-handlers";
 
 function requireDriver(actor: Actor) {
@@ -181,6 +182,7 @@ const tripEnd: Handler = async (actor) => {
 export const handlers: Record<string, Handler> = {
   ...bookingHandlers,
   ...requestHandlers,
+  ...ratingHandlers,
   "trip.start": tripStart,
   "trip.end": tripEnd,
   "vehicle.save": vehicleSave,

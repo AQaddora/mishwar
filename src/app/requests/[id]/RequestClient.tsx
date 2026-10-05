@@ -1,5 +1,6 @@
 "use client";
 
+import { NO_RATING, ratingText } from "@/lib/rating-rules";
 import Link from "next/link";
 import { useState } from "react";
 import { DataAge } from "@/components/DataAge";
@@ -31,8 +32,8 @@ function OfferCard({ offer, data, open, news, download, busy, onAccept }: { offe
       </p>
       <p className="truncate font-bold">{offer.name}</p>
       <p className="text-caption text-text-muted">{vehicle ? `${VEHICLE_TYPE_AR[vehicle.type]} · ${seatsText(vehicle.seats)}` : "بدون سيارة مسجّلة"}</p>
-      {/* The rating number arrives with M7. Until a driver has ratings he is simply new: no made-up stars. */}
-      <p className="text-caption text-text-muted">سوّاق جديد، لسّا ما في تقييم</p>
+      {/* Until a driver has ratings he is simply new: no made-up stars. */}
+      <p className="text-caption text-text-muted">{ratingText(offer.rating, offer.ratings) ? <bdi>{ratingText(offer.rating, offer.ratings)}</bdi> : NO_RATING}</p>
       {offer.status === "accepted" && <p className="font-bold text-accent">قبلت هاد العرض</p>}
       {declined && <p className="text-caption text-text-muted">ما اخترته</p>}
       {!declined && (

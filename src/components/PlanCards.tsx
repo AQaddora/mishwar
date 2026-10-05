@@ -1,5 +1,6 @@
 "use client";
 
+import { ratingText } from "@/lib/rating-rules";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useOutbox } from "@/components/OutboxStatus";
@@ -46,7 +47,10 @@ function LegRow({ leg, now, isNow, download }: { leg: PlanLeg; now: number; isNo
           </span>
           <span className={`shrink-0 text-caption ${leg.vehicle.free > 0 ? "text-accent" : "text-danger"}`}>{freeSeatsText(leg.vehicle.free)}</span>
         </span>
-        <span className="truncate text-caption text-text-muted">{leg.route.name}</span>
+        <span className="truncate text-caption text-text-muted">
+          {leg.route.name}
+          {ratingText(leg.vehicle.rating, leg.vehicle.ratings) && <bdi> · {ratingText(leg.vehicle.rating, leg.vehicle.ratings)}</bdi>}
+        </span>
         <span>
           من {placeName(leg.from)} لـ{placeName(leg.to)} · {stopsText(leg.stopCount)}
         </span>
