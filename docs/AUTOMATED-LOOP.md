@@ -145,7 +145,7 @@ worktree, and runs Claude Code there without a person at the keyboard:
 
 ```bash
 claude -p "Fix GitHub issue #12 in this repository. Read the issue, reproduce it ..." \
-  --permission-mode acceptEdits --allowedTools Read Edit Write "Bash(git *)" "Bash(gh *)" ...
+  --permission-mode acceptEdits --allowedTools "Read,Edit,Write,Bash(git:*),Bash(gh:*),..."
 ```
 
 Claude Code reads the issue, follows the project skills, fixes that one thing, adds a

@@ -15,8 +15,8 @@ ROOT="$(git rev-parse --show-toplevel)"
 WORK="${LOOP_WORKDIR:-$ROOT/../$(basename "$ROOT")-fixes}"
 MAX="${LOOP_MAX:-1}"                                  # issues per pass
 MODE="${LOOP_PERMISSION_MODE:-acceptEdits}"           # see the README before changing it
-TOOLS="${LOOP_ALLOWED_TOOLS:-Read Edit Write Glob Grep Bash(git *) Bash(gh *) Bash(npm *) Bash(npx *) Bash(node *)}"
-read -r -a TOOL_LIST <<<"$TOOLS"
+# One comma-separated argument: split on spaces, "Bash(git *)" would fall apart.
+TOOLS="${LOOP_ALLOWED_TOOLS:-Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(node:*)}"
 
 prompt() {
   echo "Fix GitHub issue #$1 in this repository. Read the issue, reproduce it with the command it gives, find the cause, and fix exactly that, following the project skills in .claude/skills. Work on a branch named fix-issue-$1, add or update one unit test that would have caught it, run npm run build and npm test, and open a pull request titled \"Fix #$1: <short name>\" whose description ends with \"Closes #$1\". Do not merge. Do not weaken any check."
@@ -35,7 +35,7 @@ fix_one() {
   git -C "$ROOT" worktree remove --force "$tree" 2>/dev/null
   if git -C "$ROOT" worktree add -q -B "fix-issue-$n" "$tree" origin/main &&
     (cd "$tree" && npm ci --no-audit --no-fund >/dev/null 2>&1 &&
-      claude -p "$(prompt "$n")" --permission-mode "$MODE" --allowedTools "${TOOL_LIST[@]}" >"$WORK/issue-$n.log" 2>&1); then
+      claude -p "$(prompt "$n")" --permission-mode "$MODE" --allowedTools "$TOOLS" >"$WORK/issue-$n.log" 2>&1); then
     url="$(pr_for "$n")"
   fi
   if [ -n "${url:-}" ]; then
