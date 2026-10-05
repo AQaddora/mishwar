@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bookBoxView,
   canCancelNotReady,
   canStartTrip,
   canWriteSharedPosition,
@@ -166,5 +167,22 @@ describe("off route (invariant 9)", () => {
     const again = offRouteStep({ since: back.since, distanceMeters: 800, now: T + 300_000 });
     expect(again).toEqual({ since: T + 300_000, notify: false, clear: false });
     expect(offRouteStep({ since: again.since, distanceMeters: 800, now: T + 300_000 + OFF_ROUTE_MS }).notify).toBe(true);
+  });
+});
+
+describe("what the «احجز» box shows", () => {
+  it("tells a rider who lost the race why, even though the vehicle is now full", () => {
+    // The refusal and the fresh data (0 free seats) arrive together.
+    expect(bookBoxView({ outcome: "rejected", free: 0, open: true })).toBe("refused");
+  });
+  it("says the vehicle is full only to a rider who has not just been refused", () => {
+    expect(bookBoxView({ outcome: null, free: 0, open: false })).toBe("full");
+    expect(bookBoxView({ outcome: null, free: 0, open: true })).toBe("full");
+  });
+  it("keeps the picker after a refusal while seats are left, and shows the answer once booked or queued", () => {
+    expect(bookBoxView({ outcome: "rejected", free: 1, open: true })).toBe("picker");
+    expect(bookBoxView({ outcome: null, free: 3, open: false })).toBe("closed");
+    expect(bookBoxView({ outcome: "applied", free: 0, open: true })).toBe("done");
+    expect(bookBoxView({ outcome: "queued", free: 2, open: true })).toBe("done");
   });
 });
