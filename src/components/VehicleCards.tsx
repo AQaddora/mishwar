@@ -11,7 +11,7 @@ import { freeSeatsText, positionText } from "@/lib/vehicle-copy";
 
 // A vehicle photo under the photo rules: from the phone's cache when it is there; from
 // the network only on Wi-Fi, or after the user taps «نزّل الصور هلأ».
-function VehiclePhoto({ hash, download, className }: { hash: string | undefined; download: boolean; className: string }) {
+export function VehiclePhoto({ hash, download, className }: { hash: string | undefined; download: boolean; className: string }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;

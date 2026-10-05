@@ -3,7 +3,10 @@ import { getPlace, pickerPlaces } from "@/lib/places";
 import { isTime } from "@/lib/time";
 import { SearchClient } from "./SearchClient";
 
-// Search by time, from and to. Open to guests. The page honours a query string, so a
+// The AI flag depends on the server's environment at request time, never on the build.
+export const dynamic = "force-dynamic";
+
+// The trip planner: from, to and a time. Open to guests. The page honours a query string, so a
 // search can be linked: /search?from=node/1&to=node/2&when=tomorrow&time=08:00
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
@@ -18,6 +21,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <Screen title="دوّر على مشوار" back={{ href: "/", label: "الرئيسية" }}>
       <SearchClient
+        aiAvailable={Boolean(process.env.ANTHROPIC_API_KEY)}
         places={pickerPlaces()}
         initial={{
           from: place("from"),

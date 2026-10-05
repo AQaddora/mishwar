@@ -15,7 +15,9 @@ driver /driver/schedule driver-schedule
 driver /driver/requests driver-requests
 driver /account driver-account
 guest /?photos=now home-photos
-guest /search?from=node/13354378801&to=node/299944872 search-now
-guest /search?from=node/504259697&to=node/505041386&when=tomorrow&time=08:00 search-tomorrow
+guest /search?from=node/504259697&to=node/505021826 plan-direct
+guest /search?from=node/3007045042&to=node/505021826 plan-change
+guest /search?from=node/3007045042&to=node/322022888 plan-no-route
+guest /search?from=node/13354378801&to=node/322022888&when=tomorrow&time=08:00 plan-tomorrow
 driver /driver/drive driver-drive
 guest /offline offline

@@ -9,7 +9,7 @@
 import "leaflet/dist/leaflet.css";
 import type { LayerGroup, Map as LeafletMap, TileLayer } from "leaflet";
 import { useEffect, useRef } from "react";
-import { GAZA_BBOX } from "@/lib/places";
+import { GAZA_BBOX, PLACES } from "@/lib/places";
 import outline from "../../data/gaza-strip.json";
 
 export type MapMarker = {
@@ -66,7 +66,8 @@ export function MapView({
         maxBoundsViscosity: 0.8,
       });
       m.attributionControl.setPrefix(false);
-      m.fitBounds(strip);
+      // The first view fits the Strip's land (where the places are), not its sea area.
+      m.fitBounds(L.latLngBounds(PLACES.map((p) => [p.lat, p.lon] as [number, number])));
       const tiles = L.tileLayer(TILE_URL, {
         attribution: "© OpenStreetMap contributors",
         // CORS requests, so the service worker can keep real copies of the tiles viewed.
