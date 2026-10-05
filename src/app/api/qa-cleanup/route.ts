@@ -19,7 +19,8 @@ export async function POST(request: Request): Promise<Response> {
   // photos, routes, stops, schedule, trips, positions, outbox entries, sessions; bookings
   // through their rider and through the driver's route; location shares through their
   // booking and rider; special requests through their rider, offers through request and
-  // driver, messages through offer and sender), so deleting the users removes it all.
+  // driver, messages through offer and sender; ratings through rater and ratee), so
+  // deleting the users removes it all.
   // SearchLog has no user in it. A later table that does NOT cascade from User must
   // be deleted here first, before the users.
   const [vehicles, routes, trips, bookings] = await Promise.all([

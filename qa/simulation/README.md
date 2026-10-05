@@ -65,7 +65,7 @@ The scenarios run in the order of a day in the city.
 | `location-share` | Driver 1 asks two riders where they are: one says yes (banner on his phone, his point on the driver's), one says no (the driver sees nothing) |
 | `trip` | Driver 1 calls, marks ready, cancels one rider as not ready; «ابدأ الرحلة» unlocks only when all are decided; starting ends the location sharing; ending completes the bookings. Driver 2 runs his full vehicle. Everyone else finishes the day |
 | `special-request` | A rider posts a private trip from the planner's no-route line; drivers 1 and 2 send prices; a driver in maintenance cannot; rider and driver chat; the rider accepts one; the other driver is told; only the chosen driver ever gets the rider's phone; the driver marks the trip done |
-| `history-rating` | Not written yet: listed as skipped, with the reason |
+| `history-rating` | Riders find their finished trips in the history and rate the driver (one with no internet); drivers see each ended trip with its riders and rate back; the private trip is rated both ways; a trip cannot be rated twice; the driver's average then shows on his vehicle and equals the stars given |
 
 The full story needs at least 2 drivers and 4 riders; a change of vehicle needs 3
 drivers. With fewer, the steps that cannot happen are skipped and say why.
@@ -120,7 +120,7 @@ by typing its name, like a person). Then run the simulation again; it starts cle
 ## Adding a scenario
 
 Copy `scenarios/booking.mjs`, export `{ name, needs, run }`, and list it in
-`scenarios/index.mjs` in place of its stub from `scenarios/todo.mjs`. Inside `run`:
+`scenarios/index.mjs`. Inside `run`:
 
 ```js
 const rider = await sim.person("rider", 1);          // one phone per person
