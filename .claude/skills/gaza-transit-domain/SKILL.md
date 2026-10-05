@@ -72,8 +72,11 @@ riders, and a leaked phone number or location can put a real person at risk.
 
 ## Where is my ride
 
-- **Positions come only from the driver's phone GPS,** sent from the driving screen
-  («أنا سايق») while Mishwar is open.
+- **Positions come only from the driver's phone GPS, and only during an active trip
+  while online.**
+  - The driver starts the trip and ends it; positions go out only in between.
+  - Positions are never queued offline: a stale point is worse than none.
+  - They're sent from the driving screen while Mishwar is open.
   - The screen keeps the display awake.
   - Web apps can't send location in the background on iPhone or Android; native apps may
     come later.

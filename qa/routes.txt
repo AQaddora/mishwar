@@ -1,0 +1,12 @@
+guest / home
+guest /login login
+guest /welcome role-choice
+rider / rider-home
+rider /trips rider-trips
+rider /requests rider-requests
+rider /account rider-account
+driver /driver driver-today
+driver /driver/vehicle driver-vehicle
+driver /driver/routes driver-routes
+driver /driver/requests driver-requests
+driver /account driver-account
