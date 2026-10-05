@@ -104,6 +104,20 @@ export const SEED_FLEET = [
   },
 ];
 
+// M5: bookings, so the driver's pre-trip check and the rider's «رحلاتي» have something to
+// show. All between @mishwar.test users, with obviously fake phones.
+const RIDER_2 = { email: "qa-rider-2@mishwar.test", name: "سامر تجريبي", phone: "0590000006", role: "rider" };
+export const SEED_BOOKINGS = {
+  // The demo rider on the demo driver's route: confirmed, and the driver has asked for his location.
+  first: { id: "00000000-0000-4000-8000-0000000000b1", share: "00000000-0000-4000-8000-0000000000c1", from: 0, to: 4, seats: 2 },
+  // A second rider on the same route: already called, and sharing his location.
+  second: { id: "00000000-0000-4000-8000-0000000000b2", share: "00000000-0000-4000-8000-0000000000c2", from: 2, to: 6, seats: 1 },
+  // The demo rider on the bus, which is on the road with a fresh position.
+  bus: { id: "00000000-0000-4000-8000-0000000000b3", from: 3, to: 6, seats: 1 },
+  // The demo rider's cancelled booking, with its reason.
+  cancelled: { id: "00000000-0000-4000-8000-0000000000b4", from: 0, to: 4, seats: 1 },
+};
+
 // An obviously fake photo: a flat colour and the words «صورة تجريبية». Never a stock image.
 const placeholderSvg = (colour, label) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
 <rect width="800" height="600" fill="${colour}"/>
@@ -171,6 +185,35 @@ async function seedFleetDriver(d) {
   await prisma.vehiclePosition.upsert({ where: { vehicleId: vehicle.id }, update: position, create: { vehicleId: vehicle.id, ...position } });
 }
 
+async function seedBookings(driverId) {
+  const rider = await prisma.user.findUniqueOrThrow({ where: { email: RIDER.email } });
+  const rider2 = await prisma.user.upsert(profile(RIDER_2));
+  const day = gazaDay();
+  const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Gaza", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+  const fleet = async (email) => (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
+  const fresh = { calledAt: null, readyAt: null, tripId: null, startedAt: null, completedAt: null, offRouteNotifiedAt: null, cancelReason: null };
+  const save = async (b, riderId, drvId, route, extra) => {
+    const data = { riderId, driverId: drvId, routeId: route.id, day, time, fromPosition: b.from, toPosition: b.to, fromPlaceId: route.stops[b.from], toPlaceId: route.stops[b.to], seats: b.seats, status: "confirmed", ...fresh, ...extra };
+    await prisma.booking.upsert({ where: { id: b.id }, update: data, create: { id: b.id, ...data } });
+  };
+  const B = SEED_BOOKINGS;
+  await save(B.first, rider.id, driverId, SEED_ROUTE, {});
+  await save(B.second, rider2.id, driverId, SEED_ROUTE, { calledAt: new Date() });
+  await save(B.bus, rider.id, await fleet(SEED_FLEET[1].email), SEED_FLEET[1].route, {});
+  await save(B.cancelled, rider.id, await fleet(SEED_FLEET[2].email), SEED_FLEET[2].route, { status: "cancelled", cancelReason: "rider_not_ready", calledAt: new Date() });
+
+  // Location asks: one waiting for the demo rider's answer (the consent sheet), one the
+  // second rider said yes to, standing at his own boarding stop (its OSM coordinates).
+  const expiresAt = new Date(Date.now() + 15 * 60_000);
+  const open = { bookingId: B.first.id, riderId: rider.id, askedAt: new Date(), expiresAt, answer: null, endedAt: null, endReason: null, lat: null, lon: null, at: null };
+  await prisma.locationShare.upsert({ where: { id: B.first.share }, update: open, create: { id: B.first.share, ...open } });
+  const stop = gazetteer.places.find((p) => p.id === SEED_ROUTE.stops[B.second.from]);
+  const yes = { bookingId: B.second.id, riderId: rider2.id, askedAt: new Date(), expiresAt, answer: "yes", endedAt: null, endReason: null, lat: stop.lat, lon: stop.lon, at: new Date() };
+  await prisma.locationShare.upsert({ where: { id: B.second.share }, update: yes, create: { id: B.second.share, ...yes } });
+  // Free seats travel with the vehicle: touch them so phones get the new numbers.
+  await prisma.vehicle.updateMany({ data: { updatedAt: new Date() } });
+}
+
 async function main() {
   for (const id of [SEED_ROUTE, ...SEED_FLEET.map((d) => d.route)].flatMap((r) => r.stops)) {
     if (!known.has(id)) throw new Error(`seed stop ${id} is not in data/gazetteer.json`);
@@ -195,6 +238,7 @@ async function main() {
   await prisma.vehiclePosition.deleteMany({ where: { vehicleId: vehicle.id } });
 
   for (const d of SEED_FLEET) await seedFleetDriver(d);
+  await seedBookings(driver.id);
   console.log(`qa:seed done: demo driver (ajala, 10 seats, photo, route, week), ${SEED_FLEET.length} drivers on the road, demo rider`);
 }
 

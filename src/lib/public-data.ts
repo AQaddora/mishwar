@@ -1,6 +1,7 @@
 // The public data every phone holds after a sync (offline-first-pwa skill,
 // references/sync-protocol.md): routes, vehicles, the week schedules and the latest
-// positions. Guests get exactly the same. No phone number and no rider data is in here.
+// positions. Guests get exactly the same: no phone number and no rider data is in the
+// public part. A signed-in user also gets their own bookings (private scope).
 import type { VehicleType } from "@/lib/driver-rules";
 
 export type SyncRoute = { id: string; driverId: string; name: string; isDefault: boolean; stops: string[] };
@@ -31,12 +32,56 @@ export type SyncScheduleDay = {
 /** The latest point only, with its own time. id is the vehicle id. */
 export type SyncPosition = { id: string; lat: number; lon: number; speed?: number; at: string };
 
+/** The rider's latest shared point, as its driver sees it while sharing is on. */
+export type SyncShare = {
+  id: string;
+  askedAt: string;
+  expiresAt: string;
+  /** Absent = the rider has not answered yet. */
+  answer?: "yes" | "no";
+  /** Absent while it is on. expired, trip_started, stopped, declined. */
+  ended?: string;
+  /** Only for the driver, only while sharing is on. */
+  lat?: number;
+  lon?: number;
+  at?: string;
+};
+// A booking as its rider or its driver sees it. PRIVATE: only in the sync of the two
+// people it links. `phone` is the other side's phone, present only while the booking is live.
+export type SyncBooking = {
+  id: string;
+  routeId: string;
+  routeName: string;
+  driverId: string;
+  day: string;
+  time: string;
+  from: string;
+  to: string;
+  fromPosition: number;
+  toPosition: number;
+  seats: number;
+  status: "confirmed" | "ready" | "rejected" | "cancelled";
+  cancelReason?: string;
+  /** The other person: the driver's first name for a rider, the rider's for a driver. */
+  name: string;
+  phone?: string;
+  called?: boolean;
+  startedAt?: string;
+  completedAt?: string;
+  offRoute?: boolean;
+  createdAt: string;
+  /** The latest location ask on this booking, if any. */
+  share?: SyncShare;
+};
+
 export type SyncChanges = {
   routes: SyncRoute[];
   vehicles: SyncVehicle[];
   schedule: SyncScheduleDay[];
   /** Always the COMPLETE current set, not a diff: a vehicle missing here has no position. */
   positions: SyncPosition[];
+  /** PRIVATE, signed-in only. Like positions, always the COMPLETE current set for this user. */
+  bookings: SyncBooking[];
 };
 export type SyncResponse = {
   cursor: string;
@@ -47,4 +92,4 @@ export type SyncResponse = {
 };
 
 export type PublicData = SyncChanges;
-export const EMPTY_PUBLIC_DATA: PublicData = { routes: [], vehicles: [], schedule: [], positions: [] };
+export const EMPTY_PUBLIC_DATA: PublicData = { routes: [], vehicles: [], schedule: [], positions: [], bookings: [] };

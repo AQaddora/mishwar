@@ -1,6 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useOutbox } from "@/components/OutboxStatus";
+import { seatsText } from "@/lib/booking-copy";
+import { MAX_SEATS_PER_BOOKING } from "@/lib/booking-rules";
+import { newId, type Outcome } from "@/lib/outbox";
+import { refreshData } from "@/lib/use-public-data";
 import { MapView, type MapMarker } from "@/components/MapView";
 import { Sheet } from "@/components/Sheet";
 import { VehiclePhoto } from "@/components/VehicleCards";
@@ -88,6 +94,90 @@ export function PlanOptionCard({ option, now, isNow, onOpen }: { option: PlanOpt
   );
 }
 
+// «احجز»: how many seats, then one tap. The booking is saved on the phone first and goes
+// through the outbox; the server decides (first booking wins) and the answer is shown here.
+function BookBox({ leg, time }: { leg: PlanLeg; /** The time the rider asked about, "HH:MM". */ time: string }) {
+  const { accountId, send } = useOutbox();
+  const [openBox, setOpenBox] = useState(false);
+  const [seats, setSeats] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const max = Math.min(MAX_SEATS_PER_BOOKING, Math.max(1, leg.vehicle.free));
+  const solid = "min-h-11 w-full rounded-control bg-accent px-4 py-3 font-bold text-on-accent disabled:opacity-60";
+
+  if (!accountId) {
+    return (
+      <Link href="/login" className="flex min-h-11 items-center justify-center rounded-control border border-separator bg-surface px-4 py-2 font-medium text-accent">
+        سجّل دخولك عشان تحجز
+      </Link>
+    );
+  }
+  if (outcome && outcome.status !== "rejected") {
+    const waiting = outcome.status === "queued";
+    return (
+      <div role="status" className="flex flex-col gap-2 rounded-card bg-bg p-3">
+        <p className={`font-bold ${waiting ? "text-pending" : "text-accent"}`}>{waiting ? "مستني ينبعت" : "تأكد حجزك"}</p>
+        <p className="text-caption text-text-muted">{waiting ? "انحفظ على جوالك، ورح ينبعت أول ما يرجع النت. بنخبّرك إذا تأكد." : "السوّاق شايف حجزك ورقم جوالك، ورح يتصل فيك قبل ما يطلع."}</p>
+        <Link href="/trips" className="flex min-h-11 items-center justify-center rounded-control border border-separator bg-surface px-4 py-2 font-medium text-accent">
+          شوف رحلاتي
+        </Link>
+      </div>
+    );
+  }
+  if (leg.vehicle.free <= 0) return <p className="rounded-card bg-bg p-3 text-danger">ما في كراسي فاضية بهالسيارة هلأ.</p>;
+  if (!openBox) {
+    return (
+      <button type="button" onClick={() => setOpenBox(true)} className={solid}>
+        احجز مع {leg.vehicle.driverName}
+      </button>
+    );
+  }
+
+  async function book() {
+    setBusy(true);
+    const result = await send("booking.create", {
+      id: newId(),
+      routeId: leg.route.id,
+      day: leg.day,
+      time,
+      fromPosition: leg.fromPosition,
+      toPosition: leg.toPosition,
+      seats,
+      // Only for this phone, to show the booking while it waits to be sent.
+      show: { routeName: leg.route.name, from: leg.from, to: leg.to, name: leg.vehicle.driverName },
+    });
+    setBusy(false);
+    setOutcome(result);
+    refreshData();
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card bg-bg p-3">
+      <p className="font-medium">كم كرسي؟</p>
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" aria-label="كرسي أقل" disabled={seats <= 1} onClick={() => setSeats((n) => n - 1)} className="size-11 rounded-control border border-separator bg-surface text-title disabled:opacity-40">
+          −
+        </button>
+        <p className="text-title" aria-live="polite">
+          {seatsText(seats)}
+        </p>
+        <button type="button" aria-label="كرسي زيادة" disabled={seats >= max} onClick={() => setSeats((n) => n + 1)} className="size-11 rounded-control border border-separator bg-surface text-title disabled:opacity-40">
+          +
+        </button>
+      </div>
+      {outcome?.status === "rejected" && (
+        <p role="alert" className="text-danger">
+          {outcome.message} {outcome.reason === "seats_gone" && "سكّر وشوف الخيارات الثانية."}
+        </p>
+      )}
+      <button type="button" disabled={busy} onClick={() => void book()} className={solid}>
+        أكّد الحجز
+      </button>
+      <p className="text-caption text-text-muted">السوّاق بيشوف رقم جوالك بس بعد ما تحجز.</p>
+    </div>
+  );
+}
+
 // The option on the map: the stops the rider passes, numbered in travel order, the line
 // between them, and each vehicle where it was last seen.
 function optionMap(option: PlanOption, now: number): { markers: MapMarker[]; line: [number, number][] } {
@@ -115,7 +205,7 @@ function optionMap(option: PlanOption, now: number): { markers: MapMarker[]; lin
   return { markers, line };
 }
 
-export function PlanSheet({ option, now, isNow, onClose }: { option: PlanOption | null; now: number; isNow: boolean; onClose: () => void }) {
+export function PlanSheet({ option, now, isNow, time, onClose }: { option: PlanOption | null; now: number; isNow: boolean; /** The time asked about, "HH:MM". */ time: string; onClose: () => void }) {
   const [download, setDownload] = useState(false);
   const [allCached, setAllCached] = useState(false);
   const hashes = option?.legs.flatMap((l) => l.vehicle.photos).join(",") ?? "";
@@ -161,6 +251,7 @@ export function PlanSheet({ option, now, isNow, onClose }: { option: PlanOption 
                   </li>
                 ))}
               </ol>
+              <BookBox key={`${option.id}:${leg.vehicle.id}`} leg={leg} time={time} />
               {leg.vehicle.photos.length > 1 && (
                 <div className="grid grid-cols-2 gap-2">
                   {leg.vehicle.photos.slice(1).map((hash) => (

@@ -7,7 +7,11 @@
 // messages) in buildSyncResponse, next to the public part.
 import { prisma } from "@/lib/prisma";
 import type { VehicleType } from "@/lib/driver-rules";
-import type { SyncResponse } from "@/lib/public-data";
+import type { SyncBooking, SyncResponse } from "@/lib/public-data";
+import { addDays, gazaNow } from "@/lib/time";
+import { firstName, shapeBooking } from "@/server/booking-view";
+
+export { firstName };
 
 /** The cursor is the server time of the sync minus this overlap, to catch late commits. */
 export const CURSOR_OVERLAP_MS = 5000;
@@ -44,14 +48,16 @@ export type ScheduleRow = {
   updatedAt: Date;
 };
 export type PositionRow = { vehicleId: string; lat: number; lon: number; speed: number | null; at: Date };
-export type SyncRows = { routes: RouteRow[]; vehicles: VehicleRow[]; schedule: ScheduleRow[]; positions: PositionRow[] };
-
-// First name only. «أبو خالد» and «عبد الله» are one name, not two.
-export function firstName(name: string | null): string {
-  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "سوّاق";
-  return /^(أبو|ابو|أم|ام|عبد)$/.test(words[0]) && words[1] ? `${words[0]} ${words[1]}` : words[0];
-}
+export type SyncRows = {
+  routes: RouteRow[];
+  vehicles: VehicleRow[];
+  schedule: ScheduleRow[];
+  positions: PositionRow[];
+  /** Seats held by today's live bookings, per driver id. */
+  taken?: Record<string, number>;
+  /** The signed-in user's own bookings, already shaped for them. Never set for a guest. */
+  bookings?: SyncBooking[];
+};
 
 // Pure: rows in, response out. Unit-tested against the byte budgets with the seed data.
 export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
@@ -76,7 +82,7 @@ export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
           driverName: firstName(v.driver.name),
           type: v.type,
           seats: v.seats,
-          free: v.seats,
+          free: Math.max(0, v.seats - (rows.taken?.[v.driverId] ?? 0)),
           photos: v.photos.map((p) => p.hash),
           ...(v.maintenanceFrom ? { maintenanceFrom: v.maintenanceFrom } : {}),
           ...(v.maintenanceFrom && v.maintenanceUntil ? { maintenanceUntil: v.maintenanceUntil } : {}),
@@ -115,6 +121,7 @@ export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
         ...(p.speed != null ? { speed: Math.round(p.speed * 10) / 10 } : {}),
         at: p.at.toISOString(),
       })),
+      bookings: rows.bookings ?? [],
     },
     deleted: { routes: [], vehicles: [] },
     more: false,
@@ -143,12 +150,33 @@ export function parseCursor(value: string | null): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
-// `user` is unused until the private scopes arrive (M5: bookings; M6: offers, messages).
+// The signed-in user's bookings, as a rider or as a driver: the live ones, and the rest
+// from yesterday on (so a cancel or a finished trip is still seen). Complete set each time.
+async function privateBookings(userId: string, now: Date): Promise<SyncBooking[]> {
+  const mine = { OR: [{ riderId: userId }, { driverId: userId }] };
+  // A share past its 15 minutes is over: delete its position now, on this write path too,
+  // not only hide it when reading.
+  await prisma.locationShare.updateMany({
+    where: { endedAt: null, expiresAt: { lte: now }, booking: mine },
+    data: { endedAt: now, endReason: "expired", lat: null, lon: null, at: null },
+  });
+  const rows = await prisma.booking.findMany({
+    where: { AND: [mine, { OR: [{ day: { gte: addDays(gazaNow(now).day, -1) } }, { status: { in: ["confirmed", "ready"] }, completedAt: null }] }] },
+    orderBy: [{ day: "asc" }, { time: "asc" }, { createdAt: "asc" }],
+    take: 100,
+    include: {
+      rider: { select: { name: true, phone: true } },
+      route: { select: { name: true, driver: { select: { name: true, phone: true } } } },
+      shares: { orderBy: { askedAt: "desc" }, take: 1 },
+    },
+  });
+  return rows.flatMap((row) => shapeBooking(row, userId, now.getTime()) ?? []);
+}
+
 export async function buildSyncResponse(user: { id: string } | null, since: Date | null): Promise<SyncResponse> {
-  void user;
   const serverTime = new Date();
   const changed = since ? { gte: since } : undefined;
-  const [routes, vehicles, schedule, positions] = await Promise.all([
+  const [routes, vehicles, schedule, positions, held, bookings] = await Promise.all([
     prisma.route.findMany({
       // A first sync has no use for routes that are already deleted.
       where: since ? { OR: [{ updatedAt: changed }, { deletedAt: changed }] } : { deletedAt: null },
@@ -181,6 +209,15 @@ export async function buildSyncResponse(user: { id: string } | null, since: Date
       select: { driverId: true, weekday: true, working: true, startTime: true, endTime: true, routeId: true, updatedAt: true },
     }),
     prisma.vehiclePosition.findMany({ select: { vehicleId: true, lat: true, lon: true, speed: true, at: true } }),
+    // Free seats = seats minus what today's live bookings hold. A booking change touches
+    // its vehicle (see booking-handlers), so the new number reaches phones in a routine sync.
+    prisma.booking.groupBy({
+      by: ["driverId"],
+      where: { day: gazaNow(serverTime).day, status: { in: ["confirmed", "ready"] }, completedAt: null },
+      _sum: { seats: true },
+    }),
+    user ? privateBookings(user.id, serverTime) : Promise.resolve(undefined),
   ]);
-  return shapeSync({ routes, vehicles, schedule, positions }, serverTime);
+  const taken = Object.fromEntries(held.map((h) => [h.driverId, h._sum.seats ?? 0]));
+  return shapeSync({ routes, vehicles, schedule, positions, taken, bookings }, serverTime);
 }

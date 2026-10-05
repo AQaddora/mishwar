@@ -28,7 +28,7 @@ export function SearchClient({
   aiAvailable,
 }: {
   places: PickPlace[];
-  initial: { from: string | null; to: string | null; when: When; time: string | null };
+  initial: { from: string | null; to: string | null; when: When; time: string | null; /** Open the first option's sheet straight away. */ open?: boolean };
   /** The server has a key for the optional AI step. The planner never needs it. */
   aiAvailable: boolean;
 }) {
@@ -50,6 +50,14 @@ export function SearchClient({
     return planTrips(data, { from, to, at: asked, isNow, now }, (id) => getPlace(id));
   }, [data, ready, now, from, to, asked, isNow]);
   const open = options?.find((o) => o.id === openId) ?? null;
+  // A link can ask for the first option's sheet (/search?...&open=1), once.
+  const autoOpened = useRef(!initial.open);
+  const firstId = options?.[0]?.id;
+  useEffect(() => {
+    if (autoOpened.current || !firstId) return;
+    autoOpened.current = true;
+    setOpenId(firstId);
+  }, [firstId]);
 
   // The anonymised search log: place ids, the weekday and hour asked about, and how many
   // options came out. Sent once per search, only when online; a failure is silent and
@@ -205,7 +213,7 @@ export function SearchClient({
         )}
       </section>
 
-      <PlanSheet option={open} now={now} isNow={isNow} onClose={() => setOpenId(null)} />
+      <PlanSheet option={open} now={now} isNow={isNow} time={asked.time} onClose={() => setOpenId(null)} />
     </div>
   );
 }

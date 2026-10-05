@@ -31,6 +31,8 @@ model User {
   scheduleDays  ScheduleDay[]
   outboxEntries OutboxEntry[]
   trips         Trip[]
+  bookings      Booking[]
+  locationShares LocationShare[]
 }
 
 model Account {
@@ -83,6 +85,9 @@ model Vehicle {
   maintenanceUntil String?
   updatedAt        DateTime    @updatedAt
   driver           User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  // Set when a running vehicle with bookings is first seen more than 500 m from its route
+  // line; cleared when it is back. Two minutes of it tells the booked riders (M5).
+  offRouteSince    DateTime?
   photos           Photo[]
   position         VehiclePosition?
 }
@@ -115,6 +120,7 @@ model Route {
   stops     RouteStop[]
   days      ScheduleDay[]
   trips     Trip[]
+  bookings  Booking[]
 
   @@index([driverId])
 }
@@ -171,6 +177,7 @@ model Trip {
   endedAt   DateTime?
   driver    User      @relation(fields: [driverId], references: [id], onDelete: Cascade)
   route     Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
 
   @@index([driverId, endedAt])
 }
@@ -203,4 +210,69 @@ model SearchLog {
   createdAt   DateTime
 
   @@index([createdAt])
+}
+
+// A seat (or a few) on one driver's route on one day. The id comes from the rider's
+// phone, so a replayed booking can never book twice.
+// status: confirmed → ready (the driver confirmed the rider before the trip), or
+// rejected (the server said no when it arrived) or cancelled (see cancelReason).
+// "pending" exists only on the phone, while the booking waits in the outbox.
+// Live = confirmed or ready, and not completed. Completed = its trip ended (completedAt).
+model Booking {
+  id                 String    @id
+  riderId            String
+  driverId           String
+  routeId            String
+  // Local calendar day in Asia/Gaza, and the time the rider asked about ("HH:MM").
+  day                String
+  time               String
+  // Indexes into the route's stops when booked, and the places themselves, which stay
+  // true if the driver later edits the route. fromPosition > toPosition = the way back.
+  fromPosition       Int
+  toPosition         Int
+  fromPlaceId        String
+  toPlaceId          String
+  seats              Int
+  status             String
+  // rider_not_ready, schedule_change, maintenance, by_rider; for rejected: seats_gone, not_running
+  cancelReason       String?
+  calledAt           DateTime?
+  readyAt            DateTime?
+  tripId             String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  offRouteNotifiedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  rider              User      @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  route              Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  trip               Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  shares             LocationShare[]
+
+  @@index([riderId])
+  @@index([driverId, day])
+}
+
+// One row per time a driver asks a rider for their location. The rider answers yes or no
+// to THIS ask; there is no "always". The position (lat, lon, at) exists only between a yes
+// and the end: trip start, 15 minutes after the ask, or the rider stopping. It is deleted
+// then, and never copied anywhere. No history.
+model LocationShare {
+  id        String    @id
+  bookingId String
+  riderId   String
+  askedAt   DateTime  @default(now())
+  expiresAt DateTime
+  // null = not answered yet; "yes" or "no".
+  answer    String?
+  // Set when sharing is over; endReason: expired, trip_started, stopped, declined.
+  endedAt   DateTime?
+  endReason String?
+  lat       Float?
+  lon       Float?
+  at        DateTime?
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rider     User      @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
 }

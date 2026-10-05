@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { BookingNotices } from "@/components/BookingNotices";
 import { DataAge } from "@/components/DataAge";
 import { ForwardChevron } from "@/components/icons";
 import { MapView, type MapMarker } from "@/components/MapView";
@@ -49,6 +50,8 @@ export function RiderHome({ signedIn, downloadPhotos }: { signedIn: boolean; /**
           <ForwardChevron />
         </span>
       </Link>
+
+      {signedIn && ready && <BookingNotices bookings={data.bookings} now={now} today={gazaNow(new Date(now)).day} />}
 
       <MapView markers={markers} onSelect={setOpenId} className="h-72" />
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />

@@ -10,7 +10,7 @@ export type LocalData = { data: PublicData; /** The last sync that succeeded (IS
 
 export async function readLocal(): Promise<LocalData> {
   const [rows, lastSyncAt] = await Promise.all([idbGetAll<Stored>("data"), getMeta<string | null>("lastSyncAt")]);
-  const data: PublicData = { routes: [], vehicles: [], schedule: [], positions: [] };
+  const data: PublicData = { routes: [], vehicles: [], schedule: [], positions: [], bookings: [] };
   for (const row of rows) (data[row.entity] as unknown[] | undefined)?.push(row.value);
   return { data, lastSyncAt: lastSyncAt ?? null };
 }
@@ -29,14 +29,14 @@ export function syncNow(): Promise<boolean> {
         if (!response.ok) return false;
         const body = (await response.json()) as SyncResponse;
         const puts: Stored[] = [];
-        for (const entity of ["routes", "vehicles", "schedule", "positions"] as const) {
+        for (const entity of ["routes", "vehicles", "schedule", "positions", "bookings"] as const) {
           for (const value of body.changes[entity] ?? []) puts.push({ entity, id: value.id, value });
         }
-        // Positions arrive as the complete current set: drop the ones that are gone.
-        const current = new Set(body.changes.positions.map((p) => p.id));
-        const gone = (await idbGetAll<Stored>("data")).filter((r) => r.entity === "positions" && !current.has(r.id));
+        // Positions and bookings arrive as the complete current set: drop the ones that are gone.
+        const current = { positions: new Set(body.changes.positions.map((p) => p.id)), bookings: new Set((body.changes.bookings ?? []).map((b) => b.id)) };
+        const gone = (await idbGetAll<Stored>("data")).filter((r) => (r.entity === "positions" || r.entity === "bookings") && !current[r.entity].has(r.id));
         const deletes: IDBValidKey[] = [
-          ...gone.map((r) => ["positions", r.id]),
+          ...gone.map((r) => [r.entity, r.id]),
           ...body.deleted.routes.map((id) => ["routes", id]),
           ...body.deleted.vehicles.map((id) => ["vehicles", id]),
         ];

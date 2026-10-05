@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { ForwardChevron, PersonIcon } from "@/components/icons";
-import { EmptyState, Screen } from "@/components/Screen";
+import { Screen } from "@/components/Screen";
 import { isRunning, NOT_RUNNING_AR } from "@/lib/driver-rules";
 import { getCurrentUser } from "@/lib/session";
 import { formatTime, gazaNow, WEEKDAY_AR } from "@/lib/time";
+import { prisma } from "@/lib/prisma";
 import { getDriverSetup } from "@/server/driver";
+import { TodayRiders } from "./TodayRiders";
 
-export default async function DriverTodayPage() {
+// «اليوم». /driver?loc=<booking id> opens that rider's shared location.
+export default async function DriverTodayPage({ searchParams }: { searchParams: Promise<{ loc?: string }> }) {
   const user = await getCurrentUser();
   if (user?.role !== "driver") return null;
-  const setup = await getDriverSetup(user.id);
+  const [setup, openTrip, params] = await Promise.all([
+    getDriverSetup(user.id),
+    prisma.trip.findFirst({ where: { driverId: user.id, endedAt: null }, select: { id: true } }),
+    searchParams,
+  ]);
   const now = gazaNow();
   const state = isRunning(setup, now);
   const route = state.running ? setup.routes.find((r) => r.id === state.routeId) : undefined;
@@ -57,7 +64,7 @@ export default async function DriverTodayPage() {
           <ForwardChevron />
         </span>
       </Link>
-      <EmptyState>ما في حجوزات اليوم لسّا.</EmptyState>
+      <TodayRiders hasOpenTrip={openTrip !== null} canDrive={setup.vehicle !== null && setup.routes.length > 0} openLocation={typeof params.loc === "string" ? params.loc : null} />
     </Screen>
   );
 }

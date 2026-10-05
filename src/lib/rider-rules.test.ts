@@ -24,6 +24,7 @@ const data: PublicData = {
     { id: "d2:2", driverId: "d2", weekday: 2, working: true, startTime: "06:00", endTime: "14:00" },
   ],
   positions: [{ id: "v1", lat: 1, lon: 1, at: "2026-10-05T07:00:00Z" }],
+  bookings: [],
 };
 const monday = (time: string) => ({ day: "2026-10-05", weekday: 1, time });
 const tuesday = (time: string) => ({ day: "2026-10-06", weekday: 2, time });

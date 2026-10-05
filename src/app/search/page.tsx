@@ -28,6 +28,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           to: place("to"),
           when: when === "today" || when === "tomorrow" ? when : "now",
           time: isTime(time) ? time : null,
+          open: one("open") === "1",
         }}
       />
     </Screen>

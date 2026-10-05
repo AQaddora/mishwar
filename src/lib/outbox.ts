@@ -28,6 +28,9 @@ async function sorted(): Promise<OutboxEntry[]> {
   return all.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+/** What is still waiting on the phone, oldest first. Screens show these as «مستني ينبعت». */
+export const pendingEntries = sorted;
+
 export async function pendingCount(): Promise<number> {
   return (await idbGetAll<OutboxEntry>("outbox")).length;
 }
