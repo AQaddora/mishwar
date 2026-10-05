@@ -34,6 +34,9 @@ const trip = {
         await page.goto(`${sim.base}/driver`);
         const row = riderRow(page, 1);
         await call(row);
+        // The call is recorded and the row redraws (the cancel button appears beside
+        // «جاهز»). A person taps after that, not in the same instant.
+        await row.getByRole("button", { name: "مش جاهز، الغي الحجز" }).waitFor();
         await row.getByRole("button", { name: "جاهز", exact: true }).click();
         await row.getByText("جاهز", { exact: true }).waitFor();
         await row.getByRole("button", { name: "جاهز", exact: true }).waitFor({ state: "detached" });

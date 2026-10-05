@@ -18,7 +18,9 @@ export async function POST(request: Request): Promise<Response> {
   // Every table that belongs to a user hangs off User with ON DELETE CASCADE (vehicle,
   // photos, routes, stops, schedule, trips, positions, outbox entries, sessions; bookings
   // through their rider and through the driver's route; location shares through their
-  // booking and rider), so deleting the users removes it all. SearchLog has no user in it. A later table that does NOT cascade from User must
+  // booking and rider; special requests through their rider, offers through request and
+  // driver, messages through offer and sender), so deleting the users removes it all.
+  // SearchLog has no user in it. A later table that does NOT cascade from User must
   // be deleted here first, before the users.
   const [vehicles, routes, trips, bookings] = await Promise.all([
     prisma.vehicle.count({ where: { driverId: { in: ids } } }),
