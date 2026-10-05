@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/prisma";
 import type { VehicleType } from "@/lib/driver-rules";
 import type { SyncBooking, SyncMessage, SyncOffer, SyncRequest, SyncResponse } from "@/lib/public-data";
+import { averageOf } from "@/lib/rating-rules";
 import { SYNC_MESSAGES_PER_THREAD } from "@/lib/request-rules";
 import { addDays, gazaNow } from "@/lib/time";
 import { firstName, shapeBooking } from "@/server/booking-view";
@@ -51,6 +52,7 @@ export type ScheduleRow = {
   updatedAt: Date;
 };
 export type PositionRow = { vehicleId: string; lat: number; lon: number; speed: number | null; at: Date };
+export type Averages = Record<string, { rating: number; ratings: number }>;
 export type SyncRows = {
   routes: RouteRow[];
   vehicles: VehicleRow[];
@@ -58,6 +60,8 @@ export type SyncRows = {
   positions: PositionRow[];
   /** Seats held by today's live bookings, per driver id. */
   taken?: Record<string, number>;
+  /** Average rating and count per rated user id. */
+  ratings?: Averages;
   /** The signed-in user's own bookings, already shaped for them. Never set for a guest. */
   bookings?: SyncBooking[];
   /** The signed-in user's special requests, offers and threads, already shaped. Never set for a guest. */
@@ -91,6 +95,7 @@ export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
           seats: v.seats,
           free: Math.max(0, v.seats - (rows.taken?.[v.driverId] ?? 0)),
           photos: v.photos.map((p) => p.hash),
+          ...rows.ratings?.[v.driverId],
           ...(v.maintenanceFrom ? { maintenanceFrom: v.maintenanceFrom } : {}),
           ...(v.maintenanceFrom && v.maintenanceUntil ? { maintenanceUntil: v.maintenanceUntil } : {}),
         }),
@@ -178,6 +183,7 @@ async function privateBookings(userId: string, now: Date): Promise<SyncBooking[]
       rider: { select: { name: true, phone: true } },
       route: { select: { name: true, driver: { select: { name: true, phone: true } } } },
       shares: { orderBy: { askedAt: "desc" }, take: 1 },
+      ratings: { where: { raterId: userId }, select: { id: true } },
     },
   });
   return rows.flatMap((row) => shapeBooking(row, userId, now.getTime()) ?? []);
@@ -189,7 +195,7 @@ export const OPEN_REQUESTS_IN_SYNC = 60;
 // Special requests for the signed-in user. A rider: his own, with every offer and thread.
 // A driver: the open ones, plus those he offered on, with only his own offer and thread.
 // Complete set each time; finished and closed ones drop out after yesterday.
-async function privateRequests(viewer: Viewer, now: Date) {
+async function privateRequests(viewer: Viewer, now: Date, averages: Promise<Averages>) {
   const today = gazaNow(now).day;
   const recent = { OR: [{ day: { gte: addDays(today, -1) } }, { status: "accepted", completedAt: null }] };
   const rows = await prisma.specialRequest.findMany({
@@ -204,18 +210,20 @@ async function privateRequests(viewer: Viewer, now: Date) {
     take: OPEN_REQUESTS_IN_SYNC + 40,
     include: {
       rider: { select: { name: true, phone: true } },
+      ratings: { where: { raterId: viewer.id }, select: { id: true } },
       offers: {
         orderBy: { createdAt: "asc" },
         include: { driver: { select: { name: true, phone: true } }, messages: { orderBy: { sentAt: "desc" }, take: SYNC_MESSAGES_PER_THREAD } },
       },
     },
   });
+  const ratings = await averages;
   const out = { requests: [] as SyncRequest[], offers: [] as SyncOffer[], messages: [] as SyncMessage[] };
   for (const row of rows) {
     const shaped = shapeRequest(row, viewer);
     if (!shaped) continue;
     out.requests.push(shaped.request);
-    out.offers.push(...shaped.offers);
+    out.offers.push(...shaped.offers.map((o) => ({ ...o, ...ratings[o.driverId] })));
     out.messages.push(...shaped.messages);
   }
   return out;
@@ -224,7 +232,11 @@ async function privateRequests(viewer: Viewer, now: Date) {
 export async function buildSyncResponse(user: Viewer | { id: string } | null, since: Date | null): Promise<SyncResponse> {
   const serverTime = new Date();
   const changed = since ? { gte: since } : undefined;
-  const [routes, vehicles, schedule, positions, held, bookings, special] = await Promise.all([
+  // Everyone's average rating: one small grouped query. Drivers' averages go out on their vehicles and offers.
+  const averages: Promise<Averages> = prisma.rating
+    .groupBy({ by: ["rateeId"], _sum: { stars: true }, _count: { _all: true } })
+    .then((groups) => Object.fromEntries(groups.flatMap((g) => { const a = averageOf(g._sum.stars ?? 0, g._count._all); return a ? [[g.rateeId, a]] : []; })));
+  const [routes, vehicles, schedule, positions, held, bookings, special, ratings] = await Promise.all([
     prisma.route.findMany({
       // A first sync has no use for routes that are already deleted.
       where: since ? { OR: [{ updatedAt: changed }, { deletedAt: changed }] } : { deletedAt: null },
@@ -265,8 +277,9 @@ export async function buildSyncResponse(user: Viewer | { id: string } | null, si
       _sum: { seats: true },
     }),
     user ? privateBookings(user.id, serverTime) : Promise.resolve(undefined),
-    user ? privateRequests({ id: user.id, role: "role" in user ? user.role : null }, serverTime) : Promise.resolve(undefined),
+    user ? privateRequests({ id: user.id, role: "role" in user ? user.role : null }, serverTime, averages) : Promise.resolve(undefined),
+    averages,
   ]);
   const taken = Object.fromEntries(held.map((h) => [h.driverId, h._sum.seats ?? 0]));
-  return shapeSync({ routes, vehicles, schedule, positions, taken, bookings, ...special }, serverTime);
+  return shapeSync({ routes, vehicles, schedule, positions, taken, ratings, bookings, ...special }, serverTime);
 }

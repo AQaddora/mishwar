@@ -153,6 +153,26 @@ export const SEED_REQUESTS = [
   },
 ];
 
+// M7: finished trips and ratings, so history, the star sheet and the averages have
+// something to show. Yesterday: the demo driver's ended trip carried the demo rider (who
+// rated him; the driver has not rated back) and the second rider (rated by the driver),
+// and the demo rider finished a private trip with أبو خالد that he has not rated yet.
+// Older: a few rated trips on the other drivers, so their cards show an average.
+const RIDER_3 = { email: "qa-rider-3@mishwar.test", name: "منى تجريبي", phone: "0590000007", role: "rider" };
+export const SEED_HISTORY = {
+  trip: U("a5"),
+  demoRider: { id: U("b5"), from: 0, to: 6, seats: 1 },
+  secondRider: { id: U("b6"), from: 2, to: 4, seats: 2 },
+  privateTrip: { request: U("d5"), offer: U("e6"), driver: "qa-driver-2@mishwar.test", from: "node/504266619" /* غزة */, to: "node/505035532" /* دير البلح */, time: "17:30", seats: 2, price: 4500 },
+  ratings: { riderOnTrip: U("71"), driverOnSecond: U("72") },
+  // [fleet index, trip id, [booking id, rating id, rider email, stars, comment]...]
+  fleet: [
+    [0, U("a6"), [[U("b7"), U("73"), RIDER.email, 5, "سيارة نظيفة ووصلنا عالوقت"], [U("b8"), U("74"), RIDER_2.email, 4, null], [U("b9"), U("75"), RIDER_3.email, 5, null]]],
+    [1, U("a7"), [[U("ba"), U("76"), RIDER_2.email, 4, null], [U("bb"), U("77"), RIDER_3.email, 5, "الله يعطيه العافية"]]],
+    [2, U("a8"), [[U("bc"), U("78"), RIDER.email, 3, null], [U("bd"), U("79"), RIDER_3.email, 4, null]]],
+  ],
+};
+
 // An obviously fake photo: a flat colour and the words «صورة تجريبية». Never a stock image.
 const placeholderSvg = (colour, label) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
 <rect width="800" height="600" fill="${colour}"/>
@@ -268,8 +288,64 @@ async function seedRequests() {
   }
 }
 
+async function seedHistory(driverId) {
+  const userId = async (email) => (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
+  await prisma.user.upsert(profile(RIDER_3));
+  const H = SEED_HISTORY;
+  const dayBack = (n) => new Date(Date.parse(`${gazaDay()}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
+  // Mid-morning Gaza time on that day, as real moments.
+  const moment = (n, hour) => new Date(Date.parse(`${dayBack(n)}T00:00:00Z`) + (hour - 3) * 3_600_000);
+  const endedTrip = async (id, drvId, route, n) => {
+    const data = { driverId: drvId, routeId: route.id, day: dayBack(n), startedAt: moment(n, 8), endedAt: moment(n, 9.25) };
+    await prisma.trip.upsert({ where: { id }, update: data, create: { id, ...data } });
+  };
+  const carried = async (b, riderId, drvId, route, tripId, n) => {
+    const data = {
+      riderId, driverId: drvId, routeId: route.id, day: dayBack(n), time: "08:00", fromPosition: b.from, toPosition: b.to,
+      fromPlaceId: route.stops[b.from], toPlaceId: route.stops[b.to], seats: b.seats, status: "ready", cancelReason: null,
+      calledAt: moment(n, 7.75), readyAt: moment(n, 7.8), tripId, startedAt: moment(n, 8), completedAt: moment(n, 9.25), offRouteNotifiedAt: null,
+    };
+    await prisma.booking.upsert({ where: { id: b.id }, update: data, create: { id: b.id, ...data } });
+  };
+  const rate = async (id, raterId, rateeId, target, stars, comment) => {
+    const data = { raterId, rateeId, bookingId: null, requestId: null, ...target, stars, comment };
+    await prisma.rating.upsert({ where: { id }, update: data, create: { id, ...data } });
+  };
+  const rider = await userId(RIDER.email);
+  const rider2 = await userId(RIDER_2.email);
+
+  await endedTrip(H.trip, driverId, SEED_ROUTE, 1);
+  await carried(H.demoRider, rider, driverId, SEED_ROUTE, H.trip, 1);
+  await carried(H.secondRider, rider2, driverId, SEED_ROUTE, H.trip, 1);
+  await rate(H.ratings.riderOnTrip, rider, driverId, { bookingId: H.demoRider.id }, 5, "سوّاق محترم والعجلة مريحة");
+  await rate(H.ratings.driverOnSecond, driverId, rider2, { bookingId: H.secondRider.id }, 4, "كان جاهز عالموقف");
+
+  const P = H.privateTrip;
+  const privateDriver = await userId(P.driver);
+  const request = { riderId: rider, fromPlaceId: P.from, toPlaceId: P.to, day: dayBack(1), time: P.time, seats: P.seats, note: null, status: "accepted", completedAt: moment(1, 18.5) };
+  await prisma.specialRequest.upsert({ where: { id: P.request }, update: request, create: { id: P.request, ...request } });
+  const offer = { requestId: P.request, driverId: privateDriver, priceAgorot: P.price, status: "accepted" };
+  await prisma.offer.upsert({ where: { id: P.offer }, update: offer, create: { id: P.offer, ...offer } });
+  // Left unrated on purpose: this is the trip the star sheet is photographed on.
+  await prisma.rating.deleteMany({ where: { requestId: P.request } });
+  await prisma.rating.deleteMany({ where: { bookingId: H.demoRider.id, raterId: driverId } });
+
+  for (const [index, tripId, riders] of H.fleet) {
+    const d = SEED_FLEET[index];
+    const drv = await userId(d.email);
+    await endedTrip(tripId, drv, d.route, 3);
+    for (const [bookingId, ratingId, email, stars, comment] of riders) {
+      const who = await userId(email);
+      await carried({ id: bookingId, from: 0, to: d.route.stops.length - 1, seats: 1 }, who, drv, d.route, tripId, 3);
+      await rate(ratingId, who, drv, { bookingId }, stars, comment);
+    }
+  }
+  // Averages travel with the vehicle: touch them so phones get the new numbers.
+  await prisma.vehicle.updateMany({ data: { updatedAt: new Date() } });
+}
+
 async function main() {
-  for (const id of [...[SEED_ROUTE, ...SEED_FLEET.map((d) => d.route)].flatMap((r) => r.stops), ...SEED_REQUESTS.flatMap((r) => [r.from, r.to])]) {
+  for (const id of [...[SEED_ROUTE, ...SEED_FLEET.map((d) => d.route)].flatMap((r) => r.stops), ...SEED_REQUESTS.flatMap((r) => [r.from, r.to]), SEED_HISTORY.privateTrip.from, SEED_HISTORY.privateTrip.to]) {
     if (!known.has(id)) throw new Error(`seed stop ${id} is not in data/gazetteer.json`);
   }
 
@@ -294,6 +370,7 @@ async function main() {
   for (const d of SEED_FLEET) await seedFleetDriver(d);
   await seedBookings(driver.id);
   await seedRequests();
+  await seedHistory(driver.id);
   console.log(`qa:seed done: demo driver (ajala, 10 seats, photo, route, week), ${SEED_FLEET.length} drivers on the road, demo rider`);
 }
 

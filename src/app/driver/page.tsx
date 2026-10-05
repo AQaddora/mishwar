@@ -64,6 +64,15 @@ export default async function DriverTodayPage({ searchParams }: { searchParams: 
           <ForwardChevron />
         </span>
       </Link>
+      <Link
+        href="/history"
+        className="mt-4 flex min-h-11 items-center justify-between gap-3 rounded-card bg-surface px-4 py-3"
+      >
+        <span>رحلات سابقة وتقييمات</span>
+        <span className="text-text-muted">
+          <ForwardChevron />
+        </span>
+      </Link>
       <TodayRiders hasOpenTrip={openTrip !== null} canDrive={setup.vehicle !== null && setup.routes.length > 0} openLocation={typeof params.loc === "string" ? params.loc : null} />
     </Screen>
   );

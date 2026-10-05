@@ -31,3 +31,7 @@ rider /chat/00000000-0000-4000-8000-0000000000e1 request-chat
 rider /requests/00000000-0000-4000-8000-0000000000d2?photos=now request-accepted
 driver /driver/requests?offer=00000000-0000-4000-8000-0000000000d3 driver-offer-sheet
 driver /chat/00000000-0000-4000-8000-0000000000e1 driver-chat
+rider /history rider-history
+rider /history?rate=private:00000000-0000-4000-8000-0000000000d5 rider-rate-sheet
+driver /history driver-history
+driver /history?rate=booking:00000000-0000-4000-8000-0000000000b5 driver-rate-sheet

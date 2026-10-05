@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { RatingNotices } from "@/components/RatingNotices";
+import { ForwardChevron } from "@/components/icons";
 import { useEffect, useMemo, useState } from "react";
 import { BookingNotices, sharingNow } from "@/components/BookingNotices";
 import { DataAge } from "@/components/DataAge";
@@ -118,6 +121,13 @@ export function TripsClient({ openId, autoAsk }: { openId: string | null; autoAs
   return (
     <div className="mt-3 flex flex-col gap-3">
       <BookingNotices bookings={data.bookings} now={now} today={today} autoAsk={autoAsk} statusLines={false} />
+      {ready && <RatingNotices data={data} role="rider" now={now} />}
+      <Link href="/history" className="flex min-h-11 items-center justify-between gap-3 rounded-card bg-surface px-4 py-3">
+        <span>رحلاتي السابقة</span>
+        <span className="text-text-muted">
+          <ForwardChevron />
+        </span>
+      </Link>
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />
       {!ready ? (
         <div className="skeleton h-[132px] rounded-card" aria-hidden="true" />

@@ -15,6 +15,9 @@ export type SyncVehicle = {
   /** Seats nobody has booked. Equal to seats until bookings exist (M5). */
   free: number;
   photos: string[];
+  /** The driver's average rating (one decimal) and how many ratings. Absent until someone rates him. */
+  rating?: number;
+  ratings?: number;
   maintenanceFrom?: string;
   /** Present only with maintenanceFrom. Absent = until the driver says it's back. */
   maintenanceUntil?: string;
@@ -68,6 +71,8 @@ export type SyncBooking = {
   called?: boolean;
   startedAt?: string;
   completedAt?: string;
+  /** The viewer has already rated this completed trip. */
+  rated?: boolean;
   offRoute?: boolean;
   createdAt: string;
   /** The latest location ask on this booking, if any. */
@@ -87,6 +92,8 @@ export type SyncRequest = {
   note?: string;
   status: "open" | "accepted" | "closed";
   completedAt?: string;
+  /** The viewer has already rated this completed private trip. */
+  rated?: boolean;
   createdAt: string;
   /** True on the rider's own phone. */
   mine?: boolean;
@@ -104,6 +111,9 @@ export type SyncOffer = {
   /** Integer agorot: the only money in the app. */
   price: number;
   status: "sent" | "accepted" | "declined";
+  /** The driver's average rating and count, as on his vehicle. */
+  rating?: number;
+  ratings?: number;
   /** The driver's phone, for the rider, while the offer is in play. */
   phone?: string;
   createdAt: string;

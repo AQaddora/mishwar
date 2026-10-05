@@ -53,6 +53,11 @@ export function PrivateTrips({ data, role, today }: { data: PublicData; role: "r
                   السعر المتفق عليه: <bdi>{priceText(o.price)}</bdi>
                 </span>
               </div>
+              {r.completedAt && !r.rated && (
+                <Link href={`/history?rate=private:${r.id}`} prefetch={false} className={`${plain} text-accent`}>
+                  {role === "rider" ? "قيّم السوّاق" : "قيّم الراكب"}
+                </Link>
+              )}
               {!r.completedAt && (
                 <div className="flex flex-wrap gap-3">
                   {phone && (
