@@ -118,6 +118,41 @@ export const SEED_BOOKINGS = {
   cancelled: { id: "00000000-0000-4000-8000-0000000000b4", from: 0, to: 4, seats: 1 },
 };
 
+// M6: special requests, so both sides of «طلب خاص» have something to show: an open
+// request with two offers and a short chat, an agreed trip on each side, and an open
+// request the demo driver has not answered. Real gazetteer places, @mishwar.test users.
+const U = (n) => `00000000-0000-4000-8000-0000000000${n}`;
+export const SEED_REQUESTS = [
+  // The demo rider's open request: two offers to compare, and a chat with the demo driver.
+  {
+    id: U("d1"), rider: RIDER.email, from: "node/299944872" /* خان يونس */, to: "node/504266619" /* غزة */, inDays: 1, time: "15:00", seats: 3, note: "معنا شنطتين كبار", status: "open",
+    offers: [
+      { id: U("e1"), driver: DRIVER.email, price: 6000, status: "sent", chat: [
+        ["rider", U("f1"), "مرحبا، بتقدر تاخدنا من عند الدوّار؟"],
+        ["driver", U("f2"), "أهلين، آه أكيد. الساعة ثلاثة بكون عندكم."],
+        ["rider", U("f3"), "تمام. والشنط إلها مكان؟"],
+        ["driver", U("f4"), "ولا يهمك، العجلة واسعة وبتوسع الكل."],
+      ] },
+      { id: U("e2"), driver: "qa-driver-2@mishwar.test", price: 5000, status: "sent", chat: [] },
+    ],
+  },
+  // The demo rider's agreed trip: he took the bus driver's offer; the demo driver's was declined.
+  {
+    id: U("d2"), rider: RIDER.email, from: "node/505035532" /* دير البلح */, to: "node/322022888" /* رفح */, inDays: 1, time: "09:00", seats: 2, status: "accepted",
+    offers: [
+      { id: U("e3"), driver: "qa-driver-3@mishwar.test", price: 4000, status: "accepted", chat: [] },
+      { id: U("e4"), driver: DRIVER.email, price: 4500, status: "declined", chat: [] },
+    ],
+  },
+  // The second rider's open request: nobody has offered yet.
+  { id: U("d3"), rider: RIDER_2.email, from: "node/3007045042" /* جباليا */, to: "node/505021826" /* النصيرات */, inDays: 2, time: "07:30", seats: 4, status: "open", offers: [] },
+  // The second rider took the demo driver's offer: the driver's agreed private trip.
+  {
+    id: U("d4"), rider: RIDER_2.email, from: "node/505015391" /* البريج */, to: "node/504266619" /* غزة */, inDays: 1, time: "11:00", seats: 1, status: "accepted",
+    offers: [{ id: U("e5"), driver: DRIVER.email, price: 3500, status: "accepted", chat: [] }],
+  },
+];
+
 // An obviously fake photo: a flat colour and the words «صورة تجريبية». Never a stock image.
 const placeholderSvg = (colour, label) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
 <rect width="800" height="600" fill="${colour}"/>
@@ -214,8 +249,27 @@ async function seedBookings(driverId) {
   await prisma.vehicle.updateMany({ data: { updatedAt: new Date() } });
 }
 
+async function seedRequests() {
+  const userId = async (email) => (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
+  const plusDays = (n) => new Date(Date.parse(`${gazaDay()}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  for (const r of SEED_REQUESTS) {
+    const riderId = await userId(r.rider);
+    const data = { riderId, fromPlaceId: r.from, toPlaceId: r.to, day: plusDays(r.inDays), time: r.time, seats: r.seats, note: r.note ?? null, status: r.status, completedAt: null };
+    await prisma.specialRequest.upsert({ where: { id: r.id }, update: data, create: { id: r.id, ...data } });
+    for (const o of r.offers) {
+      const driverId = await userId(o.driver);
+      const offer = { requestId: r.id, driverId, priceAgorot: o.price, status: o.status };
+      await prisma.offer.upsert({ where: { id: o.id }, update: offer, create: { id: o.id, ...offer } });
+      for (const [i, [who, id, body]] of o.chat.entries()) {
+        const message = { offerId: o.id, senderId: who === "rider" ? riderId : driverId, body, sentAt: new Date(Date.now() - (o.chat.length - i) * 3 * 60_000) };
+        await prisma.message.upsert({ where: { id }, update: message, create: { id, ...message } });
+      }
+    }
+  }
+}
+
 async function main() {
-  for (const id of [SEED_ROUTE, ...SEED_FLEET.map((d) => d.route)].flatMap((r) => r.stops)) {
+  for (const id of [...[SEED_ROUTE, ...SEED_FLEET.map((d) => d.route)].flatMap((r) => r.stops), ...SEED_REQUESTS.flatMap((r) => [r.from, r.to])]) {
     if (!known.has(id)) throw new Error(`seed stop ${id} is not in data/gazetteer.json`);
   }
 
@@ -239,6 +293,7 @@ async function main() {
 
   for (const d of SEED_FLEET) await seedFleetDriver(d);
   await seedBookings(driver.id);
+  await seedRequests();
   console.log(`qa:seed done: demo driver (ajala, 10 seats, photo, route, week), ${SEED_FLEET.length} drivers on the road, demo rider`);
 }
 

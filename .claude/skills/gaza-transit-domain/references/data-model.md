@@ -17,9 +17,9 @@ matches the domain.
 | ScheduleDay | driverId, weekday, working, startTime, endTime, routeId (null = default route) | The weekly schedule: at most one row per weekday. Urgent changes edit these same rows. `startTime` is that day's first trip |
 | Place | id, osmType, osmId, nameAr, name, lat, lon | From OSM only (see places.md) |
 | Booking | id (from the rider's phone), riderId, driverId, routeId, day, time, fromPosition, toPosition, fromPlaceId, toPlaceId, seats, status, calledAt, readyAt, cancelReason, tripId, startedAt, completedAt, offRouteNotifiedAt | Status: `pending`, `confirmed`, `ready`, `rejected`, `cancelled`. `cancelReason`: `rider_not_ready`, `schedule_change`, `maintenance`, `by_rider`. `routeId` is the route running that day; either direction. Shown to riders as a "trip leg". `pending` exists only on the phone, while the booking waits in the outbox. Live = `confirmed` or `ready` with no `completedAt`; completed = its trip ended. Seats are counted per route per day |
-| SpecialRequest | id, riderId, fromPlaceId, toPlaceId, day, time, seats, status | Status: `open`, `accepted`, `closed` |
-| Offer | id, requestId, driverId, priceAgorot, status | The vehicle is the driver's one vehicle. Status: `sent`, `accepted`, `declined` |
-| ChatMessage | id, requestId or bookingId, senderId, body, sentAt | Append-only |
+| SpecialRequest | id, riderId, fromPlaceId, toPlaceId, day, time, seats, note, status, completedAt | Status: `open`, `accepted`, `closed`. An accepted request is the agreed private trip between its rider and the accepted offer's driver; `completedAt` is set when that driver says it's done |
+| Offer | id, requestId, driverId, priceAgorot, status | One per driver per request. The vehicle is the driver's one vehicle. Status: `sent`, `accepted`, `declined` |
+| Message | id, offerId, senderId, body, sentAt | The chat thread of one offer, between its driver and the request's rider. Append-only |
 | LocationShare | id, bookingId, riderId, askedAt, answer, expiresAt, lat, lon | One record per driver ask. Position cleared at trip start or `expiresAt` (asked + 15 min) |
 
 - **Money:** the only money is the offer price, in integer agorot. Routes have no fares.

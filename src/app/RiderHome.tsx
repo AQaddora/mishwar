@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { BookingNotices } from "@/components/BookingNotices";
+import { RequestNotices } from "@/components/RequestNotices";
 import { DataAge } from "@/components/DataAge";
 import { ForwardChevron } from "@/components/icons";
 import { MapView, type MapMarker } from "@/components/MapView";
@@ -52,6 +53,7 @@ export function RiderHome({ signedIn, downloadPhotos }: { signedIn: boolean; /**
       </Link>
 
       {signedIn && ready && <BookingNotices bookings={data.bookings} now={now} today={gazaNow(new Date(now)).day} />}
+      {signedIn && ready && <RequestNotices data={data} role="rider" now={now} />}
 
       <MapView markers={markers} onSelect={setOpenId} className="h-72" />
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />

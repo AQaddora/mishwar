@@ -180,3 +180,64 @@ describe("bookings in the sync (M5)", () => {
     expect(gz(shapeSync(rows, T0))).toBeLessThanOrEqual(10 * 1024);
   });
 });
+
+describe("special requests in the sync (M6)", () => {
+  it("a guest's sync carries no request, offer or message", () => {
+    const out = shapeSync(rowsFor(), T0);
+    expect(out.changes.requests).toEqual([]);
+    expect(out.changes.offers).toEqual([]);
+    expect(out.changes.messages).toEqual([]);
+  });
+
+  it("a driver's routine sync on a busy day (60 open requests, 10 own offers with full threads) stays under 10 KB", async () => {
+    const { shapeRequest } = await import("./request-view");
+    const { SYNC_MESSAGES_PER_THREAD } = await import("@/lib/request-rules");
+    const { OPEN_REQUESTS_IN_SYNC } = await import("./sync");
+    const lines = ["مرحبا، بتقدر تاخدنا من عند الدوّار؟", "أهلين، آه أكيد. الساعة ثلاثة بكون عندكم.", "تمام. والشنط إلها مكان؟", "ولا يهمك، السيارة واسعة وبتوسع الكل."];
+    const rows: SyncRows = { routes: [], vehicles: [], schedule: [], positions: rowsFor().positions, requests: [], offers: [], messages: [] };
+    for (let i = 0; i < OPEN_REQUESTS_IN_SYNC; i++) {
+      const offered = i < 10;
+      const shaped = shapeRequest(
+        {
+          id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+          riderId: `rider${i}`,
+          fromPlaceId: PLACES[(i * 5) % PLACES.length].id,
+          toPlaceId: PLACES[(i * 5 + 9) % PLACES.length].id,
+          day: "2026-10-06",
+          time: `${String(6 + (i % 12)).padStart(2, "0")}:30`,
+          seats: 1 + (i % 4),
+          note: i % 3 === 0 ? "معنا شنطتين كبار" : null,
+          status: "open",
+          completedAt: null,
+          createdAt: T0,
+          rider: { name: `راكب${i} تجريبي`, phone: "0590000002" },
+          offers: offered
+            ? [
+                {
+                  id: `11111111-0000-4000-8000-${String(i).padStart(12, "0")}`,
+                  driverId: "me",
+                  priceAgorot: 4000 + i * 100,
+                  status: "sent",
+                  createdAt: T0,
+                  updatedAt: T0,
+                  driver: { name: "سوّاق تجريبي", phone: "0590000001" },
+                  messages: Array.from({ length: SYNC_MESSAGES_PER_THREAD }, (_, k) => ({ id: `22222222-0000-4000-8000-${String(i * 100 + k).padStart(12, "0")}`, senderId: k % 2 ? "me" : `rider${i}`, body: `${lines[k % 4]} ${k}`, sentAt: new Date(T0.getTime() + k * 60_000) })),
+                },
+              ]
+            : [],
+        },
+        { id: "me", role: "driver" },
+      )!;
+      rows.requests!.push(shaped.request);
+      rows.offers!.push(...shaped.offers);
+      rows.messages!.push(...shaped.messages);
+    }
+    const out = shapeSync(rows, T0);
+    const size = gz(out);
+    process.stdout.write("\n" + `routine sync, driver with 60 open requests and 10 full threads: ${size} bytes gzipped`);
+    expect(out.changes.messages).toHaveLength(300);
+    expect(size).toBeLessThanOrEqual(10 * 1024);
+    // No rider phone anywhere: none of these offers was accepted.
+    expect(JSON.stringify(out)).not.toContain("0590000002");
+  });
+});

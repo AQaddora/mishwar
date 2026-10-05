@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DataAge } from "@/components/DataAge";
 import { PlacePicker } from "@/components/PlacePicker";
@@ -204,7 +205,11 @@ export function SearchClient({
             {!isNow && options.length > 0 && <p className="text-caption text-text-muted">هدول اللي بيكونوا شغّالين بهالوقت. وقت الوصول بيبيّن بس والسيارة ماشية.</p>}
             {options.length === 0 ? (
               <p className="text-text-muted">
-                ما لقينا طريق من {placeName(from)} لـ{placeName(to)} {isNow ? "هلأ" : "بهالوقت"}، حتى بتبديل سيارة. جرّب وقت ثاني، أو نزّل طلب خاص وأصحاب السيارات بيقدّموا عليك.
+                ما لقينا طريق من {placeName(from)} لـ{placeName(to)} {isNow ? "هلأ" : "بهالوقت"}، حتى بتبديل سيارة. جرّب وقت ثاني، أو{" "}
+                <Link href={`/requests/new?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`} className="font-medium text-accent underline">
+                  نزّل طلب خاص
+                </Link>{" "}
+                وأصحاب السيارات بيقدّموا عليك.
               </p>
             ) : (
               options.map((option) => <PlanOptionCard key={option.id} option={option} now={now} isNow={isNow} onOpen={() => setOpenId(option.id)} />)

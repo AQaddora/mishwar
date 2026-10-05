@@ -25,3 +25,9 @@ rider /search?from=node/504259697&to=node/505021826&open=1 plan-book
 rider /trips?b=00000000-0000-4000-8000-0000000000b3 booking-where
 rider /trips?ask=open location-consent
 driver /driver?loc=00000000-0000-4000-8000-0000000000b2 driver-rider-location
+rider /requests/new?from=node/3007045042&to=node/322022888 request-new
+rider /requests/00000000-0000-4000-8000-0000000000d1?photos=now request-offers
+rider /chat/00000000-0000-4000-8000-0000000000e1 request-chat
+rider /requests/00000000-0000-4000-8000-0000000000d2?photos=now request-accepted
+driver /driver/requests?offer=00000000-0000-4000-8000-0000000000d3 driver-offer-sheet
+driver /chat/00000000-0000-4000-8000-0000000000e1 driver-chat
