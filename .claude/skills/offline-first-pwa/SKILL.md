@@ -49,7 +49,8 @@ take with no signal.
 |---|---|---|
 | Seats on a trip | The server decides; the first booking to reach it wins | Winner: «تأكد حجزك». Loser: «الكراسي خلصت قبل ما يوصل طلبك», plus other options |
 | Accepting an offer | First accept wins, and the request closes | The other drivers: «الراكب اختار عرض ثاني» |
-| A driver's route, vehicle, fares | One author: the driver's latest edit wins (by server time) | The driver sees the saved version |
+| A driver's routes, weekly schedule, maintenance, vehicle, fares | One author: the driver's latest edit wins (by server time) | The driver sees the saved version |
+| A rider books, offline, a driver who has since stopped running (not working that day, outside hours, maintenance, or that day's route skips the stop) | The server rejects the booking | «انلغى حجزك لأنه السوّاق غيّر شغله اليوم» (or the maintenance reason), plus other options |
 | Chat messages | Append-only, ordered by server time | A pending mark until sent |
 
 Before adding a new kind of shared data, add its row here first.

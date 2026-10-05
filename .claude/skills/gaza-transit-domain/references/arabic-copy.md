@@ -54,6 +54,20 @@
 | Download photos now | نزّل الصور هلأ |
 | Send photos now (driver) | ابعت الصور هلأ |
 | Photos-only-on-Wi-Fi setting | الصور بس على الواي فاي |
+| Driver: the schedule window | أيام وساعات الشغل |
+| Driver: working / not working (per day) | شغّال / مش شغّال |
+| Driver: hours (per day) | من الساعة … للساعة … |
+| Driver: that day's route | خط هاد اليوم |
+| Driver: default route | الخط الأساسي |
+| Driver: new route | خط جديد |
+| Driver: vehicle in maintenance | السيارة بالتصليح |
+| Driver: vehicle back in service | رجعت السيارة |
+| Driver: before saving a change that hits bookings | في ٣ ركّاب حاجزين، رح نبلغهم إنه انلغى حجزهم |
+| Rider: driver not working today | السوّاق مش طالع اليوم |
+| Rider: vehicle in maintenance | السيارة بالتصليح هالفترة |
+| Rider: different route today | السوّاق ماشي اليوم على خط ثاني |
+| Rider: booking cancelled by a driver change | انلغى حجزك لأنه السوّاق غيّر شغله اليوم |
+| Days of the week (Saturday first) | السبت، الأحد، الاثنين، الثلاثاء، الأربعاء، الخميس، الجمعة |
 
 ## Instead of… write…
 
