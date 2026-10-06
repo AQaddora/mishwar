@@ -27,6 +27,12 @@ export function getPlace(id: string): Place | undefined {
   return byId.get(id);
 }
 
+/** A known place id from the address bar's ?<key>= (browser only), or null. */
+export function placeInAddress(key: string): string | null {
+  const id = new URLSearchParams(location.search).get(key);
+  return id && getPlace(id) ? id : null;
+}
+
 export function placeName(id: string): string {
   return byId.get(id)?.nameAr ?? "مكان مش معروف";
 }

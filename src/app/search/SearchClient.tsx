@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DataAge } from "@/components/DataAge";
 import { PlacePicker } from "@/components/PlacePicker";
 import { PlanCardSkeleton, PlanOptionCard, PlanSheet } from "@/components/PlanCards";
-import { getPlace, placeName, type PickPlace } from "@/lib/places";
+import { getPlace, placeInAddress, placeName, type PickPlace } from "@/lib/places";
 import { planTrips, type PlanOption } from "@/lib/planner";
 import { addDays, gazaNow, isTime, weekdayOf } from "@/lib/time";
 import { usePublicData } from "@/lib/use-public-data";
@@ -39,6 +39,17 @@ export function SearchClient({
   const [when, setWhen] = useState<When>(initial.when);
   const [time, setTime] = useState(initial.time ?? "08:00");
   const [openId, setOpenId] = useState<string | null>(null);
+  // With no network the phone may show its copy of /search kept without the query: the
+  // places then come from the address itself.
+  useEffect(() => {
+    if (initial.from || initial.to) return;
+    queueMicrotask(() => {
+      const from = placeInAddress("from");
+      const to = placeInAddress("to");
+      if (from) setFrom(from);
+      if (to) setTo(to);
+    });
+  }, [initial.from, initial.to]);
 
   const isNow = when === "now";
   const asked = useMemo(() => {

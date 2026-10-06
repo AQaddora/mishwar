@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import type { ReactNode } from "react";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { OutboxProvider } from "@/components/OutboxStatus";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { TabBar, type TabRole } from "@/components/TabBar";
@@ -45,9 +46,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
       <body>
+        <OfflineBanner />
         <OutboxProvider accountId={user?.id ?? null}>{children}</OutboxProvider>
         <TabBar role={role} />
-        <ServiceWorker />
+        {/* The commit (set by the server at run time) tells the worker when its kept screens are from an older build. */}
+        <ServiceWorker build={process.env.GIT_REV ?? "dev"} role={role} accountId={user?.id ?? null} />
       </body>
     </html>
   );
