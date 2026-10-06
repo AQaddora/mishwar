@@ -14,7 +14,7 @@
     "sim": "node qa/simulation/run.mjs",
     "sim:issues": "node qa/simulation/file-issues.mjs",
     "sim:cleanup": "node qa/simulation/cleanup.mjs",
-    "qa:e2e": "node qa/e2e/offline.mjs"
+    "qa:e2e": "node qa/e2e/gps.mjs && node qa/e2e/offline.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

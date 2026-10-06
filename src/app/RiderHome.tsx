@@ -55,7 +55,7 @@ export function RiderHome({ signedIn, downloadPhotos }: { signedIn: boolean; /**
       {signedIn && ready && <BookingNotices bookings={data.bookings} now={now} today={gazaNow(new Date(now)).day} />}
       {signedIn && ready && <RequestNotices data={data} role="rider" now={now} />}
 
-      <MapView markers={markers} onSelect={setOpenId} className="h-72" />
+      <MapView markers={markers} onSelect={setOpenId} locate className="h-72" />
       <DataAge lastSyncAt={lastSyncAt} offline={offline} now={now} />
 
       <section className="flex flex-col gap-2">

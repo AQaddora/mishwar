@@ -80,6 +80,14 @@ export const InboxIcon = () => (
 );
 
 // Points "back". It is drawn pointing left and mirrored in RTL, so back points right.
+export const LocateIcon = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="3.5" />
+    <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+    <circle cx="12" cy="12" r="7.5" />
+  </Icon>
+);
+
 export const BackChevron = () => (
   <Icon className="rtl:-scale-x-100">
     <path d="m15 18-6-6 6-6" />
