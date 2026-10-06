@@ -3,6 +3,7 @@
 // - the other side's phone is included only while the booking is live;
 // - a rider's shared position is included only for the driver, only while sharing is on.
 import { phoneVisible, shareIsActive } from "@/lib/booking-rules";
+import { round5 } from "@/lib/position-codec";
 import type { SyncBooking, SyncShare } from "@/lib/public-data";
 
 export type ShareRow = {
@@ -60,7 +61,7 @@ function shapeShare(s: ShareRow, forDriver: boolean, now: number): SyncShare {
     expiresAt: s.expiresAt.toISOString(),
     ...(s.answer === "yes" || s.answer === "no" ? { answer: s.answer } : {}),
     ...(ended ? { ended } : {}),
-    ...(forDriver && active && s.lat !== null && s.lon !== null && s.at ? { lat: s.lat, lon: s.lon, at: s.at.toISOString() } : {}),
+    ...(forDriver && active && s.lat !== null && s.lon !== null && s.at ? { lat: round5(s.lat), lon: round5(s.lon), at: s.at.toISOString() } : {}),
   };
 }
 

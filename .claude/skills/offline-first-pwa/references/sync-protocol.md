@@ -24,6 +24,28 @@
   `more: true`. The client calls again with the new cursor.
 - **Photos:** only hashes travel here, never photo bytes.
 
+### Binary positions (`src/lib/position-codec.ts`)
+
+- **JSON stays the default** (old phones, the simulation, curl, debugging). A phone that
+  sends `Accept: application/octet-stream` gets the same response as one binary frame:
+  `u8 version · varint jsonLength · the JSON with positions: [] · the positions`.
+- **A position is ~7 bytes:** the vehicle's small number `n` (Vehicle.seq, sent with each
+  vehicle in the JSON part; positions sorted, sent as gaps), its age in whole seconds before
+  `serverTime`, lat/lon as u16 offsets of 1e-5° (≈1.1 m) from the Strip's south-west
+  corner (absolute zigzag varints outside it), speed in quarter m/s.
+- **The route gzips the frame itself when that is smaller** (Next.js and nginx leave
+  octet-stream alone). Routine sync, 50 vehicles on the road: 584 B instead of 2,120 B.
+- **The phone decodes on arrival** and IndexedDB keeps the usual decoded records, so every
+  screen and the offline copy read exactly what they read before.
+- **`meta.syncSchema` = 2:** a phone that synced before vehicles carried `n` pulls
+  everything once. A position for a vehicle the phone doesn't know after a partial sync
+  resets the cursor (a full sync names every vehicle, so it never loops).
+- **The points a phone sends** (`POST /api/position`, `POST /api/location-share`) may be
+  binary too (`Content-Type: application/octet-stream`, 8 and 24 bytes, answered 204), and
+  carry the GPS fix's own age. A phone that gets a 400 from an older server switches to JSON.
+  Standing still (moved < 15 m), a phone sends one point a minute instead of every 15–20 s.
+- **Change the layout only with a new version byte,** and keep the decoder for the old one.
+
 ## Push: `POST /api/outbox`
 
 ```json

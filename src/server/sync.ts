@@ -9,6 +9,8 @@
 import { prisma } from "@/lib/prisma";
 import type { VehicleType } from "@/lib/driver-rules";
 import type { SyncBooking, SyncMessage, SyncOffer, SyncRequest, SyncResponse } from "@/lib/public-data";
+import type { NumberedPosition } from "@/lib/position-codec";
+import { round5 } from "@/lib/position-codec";
 import { averageOf } from "@/lib/rating-rules";
 import { SYNC_MESSAGES_PER_THREAD } from "@/lib/request-rules";
 import { addDays, gazaNow } from "@/lib/time";
@@ -33,6 +35,8 @@ export type RouteRow = {
 };
 export type VehicleRow = {
   id: string;
+  /** Vehicle.seq: the small number the binary sync names it by. */
+  seq?: number;
   driverId: string;
   type: VehicleType;
   seats: number;
@@ -51,7 +55,7 @@ export type ScheduleRow = {
   routeId: string | null;
   updatedAt: Date;
 };
-export type PositionRow = { vehicleId: string; lat: number; lon: number; speed: number | null; at: Date };
+export type PositionRow = { vehicleId: string; lat: number; lon: number; speed: number | null; at: Date; vehicle?: { seq: number } };
 export type Averages = Record<string, { rating: number; ratings: number }>;
 export type SyncRows = {
   routes: RouteRow[];
@@ -89,6 +93,7 @@ export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
       apply: (out) =>
         out.changes.vehicles.push({
           id: v.id,
+          ...(v.seq !== undefined ? { n: v.seq } : {}),
           driverId: v.driverId,
           driverName: firstName(v.driver.name),
           type: v.type,
@@ -128,8 +133,9 @@ export function shapeSync(rows: SyncRows, serverTime: Date): SyncResponse {
       // vehicle on the road, and a missing vehicle means "no position" with no extra rule.
       positions: rows.positions.map((p) => ({
         id: p.vehicleId,
-        lat: p.lat,
-        lon: p.lon,
+        // 1e-5 degree is about a metre, finer than phone GPS: the other digits are noise.
+        lat: round5(p.lat),
+        lon: round5(p.lon),
         ...(p.speed != null ? { speed: Math.round(p.speed * 10) / 10 } : {}),
         at: p.at.toISOString(),
       })),
@@ -229,7 +235,12 @@ async function privateRequests(viewer: Viewer, now: Date, averages: Promise<Aver
   return out;
 }
 
-export async function buildSyncResponse(user: Viewer | { id: string } | null, since: Date | null): Promise<SyncResponse> {
+/** The positions of a sync response with each vehicle's small number, for the binary form. */
+export function numberedPositions(rows: PositionRow[]): NumberedPosition[] {
+  return rows.flatMap((p) => (p.vehicle ? [{ n: p.vehicle.seq, lat: p.lat, lon: p.lon, speed: p.speed, at: p.at }] : []));
+}
+
+export async function buildSync(user: Viewer | { id: string } | null, since: Date | null): Promise<{ response: SyncResponse; positions: NumberedPosition[] }> {
   const serverTime = new Date();
   const changed = since ? { gte: since } : undefined;
   // Everyone's average rating: one small grouped query. Drivers' averages go out on their vehicles and offers.
@@ -254,6 +265,7 @@ export async function buildSyncResponse(user: Viewer | { id: string } | null, si
       where: since ? { OR: [{ updatedAt: changed }, { photos: { some: { createdAt: changed } } }] } : {},
       select: {
         id: true,
+        seq: true,
         driverId: true,
         type: true,
         seats: true,
@@ -268,7 +280,7 @@ export async function buildSyncResponse(user: Viewer | { id: string } | null, si
       where: since ? { updatedAt: changed } : {},
       select: { driverId: true, weekday: true, working: true, startTime: true, endTime: true, routeId: true, updatedAt: true },
     }),
-    prisma.vehiclePosition.findMany({ select: { vehicleId: true, lat: true, lon: true, speed: true, at: true } }),
+    prisma.vehiclePosition.findMany({ select: { vehicleId: true, lat: true, lon: true, speed: true, at: true, vehicle: { select: { seq: true } } } }),
     // Free seats = seats minus what today's live bookings hold. A booking change touches
     // its vehicle (see booking-handlers), so the new number reaches phones in a routine sync.
     prisma.booking.groupBy({
@@ -281,5 +293,5 @@ export async function buildSyncResponse(user: Viewer | { id: string } | null, si
     averages,
   ]);
   const taken = Object.fromEntries(held.map((h) => [h.driverId, h._sum.seats ?? 0]));
-  return shapeSync({ routes, vehicles, schedule, positions, taken, ratings, bookings, ...special }, serverTime);
+  return { response: shapeSync({ routes, vehicles, schedule, positions, taken, ratings, bookings, ...special }, serverTime), positions: numberedPositions(positions) };
 }

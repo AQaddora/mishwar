@@ -2,7 +2,8 @@
 // back from IndexedDB by the screens. So the map, the search and the planner draw from
 // what is on the phone, with or without a network. Browser only.
 import { getMeta, idbBatch, idbGetAll, setMeta } from "@/lib/idb";
-import { EMPTY_PUBLIC_DATA, type PublicData, type SyncResponse } from "@/lib/public-data";
+import { BINARY_TYPE, decodeSyncFrame } from "@/lib/position-codec";
+import { EMPTY_PUBLIC_DATA, type PublicData, type SyncResponse, type SyncVehicle } from "@/lib/public-data";
 
 type Stored = { entity: keyof PublicData; id: string; value: unknown };
 
@@ -19,6 +20,25 @@ export async function readLocal(): Promise<LocalData> {
 const COMPLETE = ["positions", "bookings", "requests", "offers", "messages"] as const;
 
 let running: Promise<boolean> | null = null;
+
+/**
+ * Bumped when what the phone stores changes shape. 2: vehicles carry `n`, which the binary
+ * positions need, so a phone that synced before pulls everything once more.
+ */
+const SYNC_SCHEMA = 2;
+
+/** The response as JSON, or decoded from the binary form (positions named by `n`). */
+async function readSync(response: Response): Promise<{ body: SyncResponse; unknown: number }> {
+  if (!(response.headers.get("content-type") ?? "").startsWith(BINARY_TYPE)) return { body: (await response.json()) as SyncResponse, unknown: 0 };
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const known = new Map<number, string>();
+  for (const row of await idbGetAll<Stored>("data")) {
+    const n = row.entity === "vehicles" ? (row.value as SyncVehicle).n : undefined;
+    if (typeof n === "number") known.set(n, row.id);
+  }
+  const { response: body, unknown } = decodeSyncFrame(bytes, (n) => known.get(n));
+  return { body, unknown };
+}
 
 // Pulls every change since the stored cursor. Resolves true when the phone is up to date,
 // false when the network (or the server) didn't answer. navigator.onLine is not trusted:
@@ -38,11 +58,16 @@ export const SYNC_FAILED_EVENT = "mishwar:sync-failed";
 function pull(): Promise<boolean> {
   return (async () => {
     try {
+      if ((await getMeta<number>("syncSchema")) !== SYNC_SCHEMA) await setMeta("cursor", null);
       for (let page = 0; page < 50; page++) {
         const cursor = (await getMeta<string | null>("cursor")) ?? null;
-        const response = await fetch(`/api/sync${cursor ? `?since=${encodeURIComponent(cursor)}` : ""}`, { cache: "no-store" });
+        const response = await fetch(`/api/sync${cursor ? `?since=${encodeURIComponent(cursor)}` : ""}`, {
+          cache: "no-store",
+          // Binary positions when the server has them; JSON from an older server is fine too.
+          headers: { accept: `${BINARY_TYPE}, application/json;q=0.5` },
+        });
         if (!response.ok) return false;
-        const body = (await response.json()) as SyncResponse;
+        const { body, unknown } = await readSync(response);
         const puts: Stored[] = [];
         for (const entity of ["routes", "vehicles", "schedule", ...COMPLETE] as const) {
           for (const value of body.changes[entity] ?? []) puts.push({ entity, id: value.id, value });
@@ -56,8 +81,11 @@ function pull(): Promise<boolean> {
           ...body.deleted.vehicles.map((id) => ["vehicles", id]),
         ];
         await idbBatch("data", puts, deletes);
-        await setMeta("cursor", body.cursor);
+        // A position for a vehicle this phone has never heard of after a partial sync:
+        // pull everything next time (a full sync names every vehicle, so it never loops).
+        await setMeta("cursor", unknown > 0 && cursor && !body.more ? null : body.cursor);
         if (!body.more) {
+          await setMeta("syncSchema", SYNC_SCHEMA);
           await setMeta("lastSyncAt", body.serverTime);
           return true;
         }

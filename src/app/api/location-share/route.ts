@@ -2,9 +2,12 @@
 // Accepted only after the rider said yes to THAT ask, and only until the trip starts or
 // 15 minutes after the ask. Never through the outbox (a queued point is a stale point),
 // never logged. One point per share, overwritten; deleted when sharing ends.
+// The body is JSON {id, lat, lon}, or the binary share point of src/lib/position-codec.ts
+// (answered 204).
 import { canWriteSharedPosition } from "@/lib/booking-rules";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { CodecError, decodeSharePoint, sentBinary } from "@/lib/position-codec";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +16,19 @@ const inRange = (n: unknown, min: number, max: number): n is number => typeof n 
 export async function POST(request: Request): Promise<Response> {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "signed_out" }, { status: 401 });
+  const binary = sentBinary(request);
   let body: { id?: unknown; lat?: unknown; lon?: unknown };
+  let fixAgeMs = 0;
   try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "bad_json" }, { status: 400 });
+    if (binary) {
+      const point = decodeSharePoint(new Uint8Array(await request.arrayBuffer()));
+      body = point;
+      fixAgeMs = Math.min(point.ageSec, 60) * 1000;
+    } else {
+      body = await request.json();
+    }
+  } catch (error) {
+    return Response.json({ error: error instanceof CodecError ? "bad_body" : "bad_json" }, { status: 400 });
   }
   if (typeof body.id !== "string" || !inRange(body.lat, -90, 90) || !inRange(body.lon, -180, 180)) {
     return Response.json({ error: "bad_position" }, { status: 400 });
@@ -39,7 +50,7 @@ export async function POST(request: Request): Promise<Response> {
     }
     return Response.json({ error: allowed }, { status: 409 });
   }
-  await prisma.locationShare.update({ where: { id: share.id }, data: { lat: body.lat, lon: body.lon, at: new Date() } });
+  await prisma.locationShare.update({ where: { id: share.id }, data: { lat: body.lat, lon: body.lon, at: new Date(Date.now() - fixAgeMs) } });
   // Touch nothing else: the driver reads the point from his own sync.
-  return Response.json({ ok: true });
+  return binary ? new Response(null, { status: 204 }) : Response.json({ ok: true });
 }

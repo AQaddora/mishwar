@@ -6,6 +6,7 @@ import { Sheet } from "@/components/Sheet";
 import { riderStatus } from "@/lib/booking-copy";
 import { isLive, shareIsActive, shareIsOpen } from "@/lib/booking-rules";
 import { placeName } from "@/lib/places";
+import { BINARY_TYPE, encodeSharePoint, fixAgeSec, worthSending } from "@/lib/position-codec";
 import type { SyncBooking } from "@/lib/public-data";
 import { refreshData } from "@/lib/use-public-data";
 
@@ -19,8 +20,9 @@ const shareOf = (b: SyncBooking) => (b.share ? { answer: b.share.answer ?? null,
 export const askIsOpen = (b: SyncBooking, now: number) => isLive(b) && !b.startedAt && !!b.share && shareIsOpen(shareOf(b)!, now);
 export const sharingNow = (b: SyncBooking, now: number) => isLive(b) && !b.startedAt && !!b.share && shareIsActive(shareOf(b)!, now);
 
-// While the rider is sharing: send his position about every 20 seconds, for as long as a
-// screen with this component is open. Never queued, never kept on the phone.
+// While the rider is sharing: send his position about every 20 seconds (once a minute
+// while he stands still), for as long as a screen with this component is open. Never
+// queued, never kept on the phone. Binary (24 bytes); JSON if an older server refuses it.
 function useShareSender(shareId: string | null) {
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
@@ -30,13 +32,29 @@ function useShareSender(shareId: string | null) {
       return;
     }
     let alive = true;
-    let latest: { lat: number; lon: number } | null = null;
+    let latest: { lat: number; lon: number; fixAt: number } | null = null;
     let sent = false;
+    let json = false;
+    let last: { lat: number; lon: number; sentAt: number } | null = null;
+    const send = (point: { lat: number; lon: number; fixAt: number }) =>
+      fetch("/api/location-share", {
+        method: "POST",
+        headers: { "content-type": json ? "application/json" : BINARY_TYPE },
+        body: json
+          ? JSON.stringify({ id: shareId, lat: point.lat, lon: point.lon })
+          : encodeSharePoint(shareId, { lat: point.lat, lon: point.lon, ageSec: fixAgeSec(point.fixAt, Date.now()) }),
+      });
     const post = async () => {
-      if (!latest) return;
+      const point = latest;
+      if (!point || !worthSending(last, point, Date.now())) return;
       try {
-        const response = await fetch("/api/location-share", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: shareId, ...latest }) });
+        let response = await send(point);
+        if (response.status === 400 && !json) {
+          json = true;
+          response = await send(point);
+        }
         sent = true;
+        if (response.ok) last = { lat: point.lat, lon: point.lon, sentAt: Date.now() };
         // 409: the share is over on the server (trip started, time ran out). Show it.
         if (response.status === 409 && alive) refreshData();
       } catch {
@@ -45,7 +63,7 @@ function useShareSender(shareId: string | null) {
     };
     const watch = navigator.geolocation.watchPosition(
       (p) => {
-        latest = { lat: p.coords.latitude, lon: p.coords.longitude };
+        latest = { lat: p.coords.latitude, lon: p.coords.longitude, fixAt: p.timestamp };
         if (alive) setProblem(null);
         if (!sent) void post();
       },

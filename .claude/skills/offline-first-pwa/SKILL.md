@@ -19,7 +19,8 @@ take with no signal.
    - Keep the item marked as pending until the server confirms it.
    - Each entry carries an idempotency key, so a replay can never double-book.
 3. **Sync is cheap.**
-   - Small JSON, only the changes since the last sync, within the budget below.
+   - Small JSON, only the changes since the last sync, within the budget below. Live
+     positions may travel binary (see `references/sync-protocol.md`).
    - Always show how old the data on screen is («آخر تحديث قبل ٥ دقايق»), and make stale
      data look stale.
    - Live vehicle positions (latest point only) travel in the routine sync. Show each
