@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutbox } from "@/components/OutboxStatus";
 import { PlacePicker } from "@/components/PlacePicker";
 import { newId } from "@/lib/outbox";
-import { getPlace, type PickPlace } from "@/lib/places";
+import { getPlace, placeInAddress, type PickPlace } from "@/lib/places";
 import { MAX_NOTE, MAX_REQUEST_DAYS_AHEAD, MAX_REQUEST_SEATS, validateRequest } from "@/lib/request-rules";
 import { addDays, formatDay, gazaNow, WEEKDAY_AR, weekdayOf } from "@/lib/time";
 import { refreshData } from "@/lib/use-public-data";
@@ -24,6 +24,16 @@ export function NewRequestForm({ places, initialFrom, initialTo }: { places: Pic
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // With no network the phone may show its copy of this screen kept without the query.
+  useEffect(() => {
+    if (initialFrom || initialTo) return;
+    queueMicrotask(() => {
+      const from = placeInAddress("from");
+      const to = placeInAddress("to");
+      if (from) setFrom(from);
+      if (to) setTo(to);
+    });
+  }, [initialFrom, initialTo]);
   const days = Array.from({ length: MAX_REQUEST_DAYS_AHEAD + 1 }, (_, i) => addDays(today, i));
   const dayLabel = (d: string, i: number) => (i === 0 ? "اليوم" : i === 1 ? "بكرة" : `${WEEKDAY_AR[weekdayOf(d)]} ${formatDay(d)}`);
 

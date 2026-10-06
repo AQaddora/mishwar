@@ -40,14 +40,19 @@ const SYSTEM_CHROME = [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
 ];
 
-export async function launchBrowser({ headed = false } = {}) {
+/** The Chromium binary to drive (see the top), or undefined when there is none. */
+export function findChromium() {
   let bundled = null;
   try {
     bundled = chromium.executablePath();
   } catch {
     /* playwright-core has no browser of its own installed */
   }
-  const executablePath = [process.env.SIM_CHROME, bundled, cachedChromium(), ...SYSTEM_CHROME].find(exists);
+  return [process.env.SIM_CHROME, bundled, cachedChromium(), ...SYSTEM_CHROME].find(exists);
+}
+
+export async function launchBrowser({ headed = false } = {}) {
+  const executablePath = findChromium();
   if (!executablePath) {
     throw new Error(
       "No Chrome or Chromium found. Install Google Chrome, or run:  npx playwright-core install chromium\n" +

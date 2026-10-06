@@ -46,3 +46,6 @@ next-env.d.ts
 
 # simulation runs (screenshots, results)
 qa/simulation/out/
+
+# end-to-end screenshots (qa/e2e)
+/qa/e2e/out/

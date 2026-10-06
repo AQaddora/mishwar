@@ -24,7 +24,19 @@ let running: Promise<boolean> | null = null;
 // false when the network (or the server) didn't answer. navigator.onLine is not trusted:
 // the request itself is the proof.
 export function syncNow(): Promise<boolean> {
-  running ??= (async () => {
+  running ??= pull().then((ok) => {
+    // For the offline banner and the service worker's precache (layout components).
+    window.dispatchEvent(new Event(ok ? SYNCED_EVENT : SYNC_FAILED_EVENT));
+    return ok;
+  });
+  return running;
+}
+
+export const SYNCED_EVENT = "mishwar:synced";
+export const SYNC_FAILED_EVENT = "mishwar:sync-failed";
+
+function pull(): Promise<boolean> {
+  return (async () => {
     try {
       for (let page = 0; page < 50; page++) {
         const cursor = (await getMeta<string | null>("cursor")) ?? null;
@@ -57,7 +69,6 @@ export function syncNow(): Promise<boolean> {
       running = null;
     }
   })();
-  return running;
 }
 
 export { EMPTY_PUBLIC_DATA };
