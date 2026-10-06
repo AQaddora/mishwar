@@ -82,6 +82,9 @@ enum VehicleType {
 model Vehicle {
   id               String           @id @default(cuid())
   driverId         String           @unique
+  // A small number for the vehicle, so the binary sync can name it in a byte or two
+  // instead of its 25-character id (src/lib/position-codec.ts). Never reused.
+  seq              Int              @unique @default(autoincrement())
   type             VehicleType
   seats            Int
   // Out of service from this day (YYYY-MM-DD, Asia/Gaza). Null: in service.

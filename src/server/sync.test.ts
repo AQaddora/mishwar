@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it, vi } from "vitest";
 import { PLACES } from "@/lib/places";
@@ -5,7 +6,8 @@ import { SEED_FLEET, SEED_ROUTE } from "../../scripts/qa-seed.mjs";
 
 // shapeSync is pure; the database client it sits next to is never touched here.
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
-const { CURSOR_OVERLAP_MS, firstName, PAGE_SIZE, parseCursor, shapeSync } = await import("./sync");
+const { CURSOR_OVERLAP_MS, firstName, numberedPositions, PAGE_SIZE, parseCursor, shapeSync } = await import("./sync");
+const { encodeSyncFrame, decodeSyncFrame } = await import("@/lib/position-codec");
 type SyncRows = import("./sync").SyncRows;
 
 const T0 = new Date("2026-10-05T08:00:00Z");
@@ -32,6 +34,7 @@ function rowsFor(extra = 0, at = T0): SyncRows {
     rows.routes.push({ id: d.route.id, driverId, name: d.route.name, isDefault: true, updatedAt: at, deletedAt: null, stops: d.route.stops.map((placeId) => ({ placeId })) });
     rows.vehicles.push({
       id: vehicleId,
+      seq: i + 1,
       driverId,
       ...d.vehicle,
       maintenanceFrom: null,
@@ -44,7 +47,9 @@ function rowsFor(extra = 0, at = T0): SyncRows {
       rows.schedule.push({ driverId, weekday, working: true, startTime: "06:00", endTime: "18:00", routeId: null, updatedAt: at });
     }
     const place = PLACES.find((p) => p.id === d.route.stops[0])!;
-    rows.positions.push({ vehicleId, lat: place.lat, lon: place.lon, speed: 8.33, at });
+    // A phone reports ~15 digits; keep that noise so the JSON is measured as it really goes.
+    const noise = ((i * 7919) % 1000) * 1.234567891e-6;
+    rows.positions.push({ vehicleId, lat: place.lat + noise, lon: place.lon - noise, speed: 8.33, at: new Date(at.getTime() - ((i * 13) % 90) * 1000), vehicle: { seq: i + 1 } });
   });
   return rows;
 }
@@ -77,6 +82,51 @@ describe("sync byte budgets (offline-first-pwa skill)", () => {
     const size = gz(shapeSync({ routes: [rows.routes[0]], vehicles: [], schedule: [], positions: rows.positions }, T0));
     process.stdout.write("\n" + `routine sync, QA seed: ${size} bytes gzipped`);
     expect(size).toBeLessThanOrEqual(1024);
+  });
+});
+
+describe("binary positions (position-codec)", () => {
+  // The routine sync a rider's map pulls every 30 seconds: nothing changed but positions.
+  // Real ids are random cuids; the counting ids above would flatter the JSON's gzip.
+  const cuid = (i: number) => "cm" + createHash("sha256").update(String(i)).digest("base64url").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 23);
+  const routine = (vehicles: number) => {
+    const rows = rowsFor(vehicles - seedDrivers.length);
+    rows.vehicles.forEach((v, i) => (v.id = cuid(i)));
+    rows.positions.forEach((p, i) => (p.vehicleId = cuid(i)));
+    return { rows, out: shapeSync({ routes: [], vehicles: [], schedule: [], positions: rows.positions }, T0) };
+  };
+  const frameBytes = (frame: Uint8Array) => Math.min(frame.length, gzipSync(frame).byteLength);
+
+  it.each([4, 50, 100, 300])("a routine sync with %i vehicles on the road is several times smaller", (vehicles) => {
+    const { rows, out } = routine(vehicles);
+    // As before this change: full-precision coordinates.
+    const before = gz({ ...out, changes: { ...out.changes, positions: rows.positions.map((p) => ({ id: p.vehicleId, lat: p.lat, lon: p.lon, speed: 8.3, at: p.at.toISOString() })) } });
+    const json = gz(out);
+    const binary = frameBytes(encodeSyncFrame(out, numberedPositions(rows.positions)));
+    process.stdout.write("\n" + `routine sync, ${vehicles} vehicles: JSON before ${before} B, JSON now ${json} B, binary ${binary} B (gzipped where smaller)`);
+    expect(json).toBeLessThan(before);
+    expect(binary).toBeLessThan(vehicles >= 50 ? json / 2.5 : json);
+  });
+
+  it("the binary sync decodes to the same positions as the JSON one, to the metre", () => {
+    const { rows, out } = routine(50);
+    const ids = new Map(rows.vehicles.map((v) => [v.seq!, v.id]));
+    const { response } = decodeSyncFrame(encodeSyncFrame(out, numberedPositions(rows.positions)), (n) => ids.get(n));
+    expect(response.changes.positions).toHaveLength(out.changes.positions.length);
+    for (const p of out.changes.positions) {
+      const got = response.changes.positions.find((x) => x.id === p.id)!;
+      expect(got.lat).toBeCloseTo(p.lat, 9);
+      expect(got.lon).toBeCloseTo(p.lon, 9);
+      expect(Math.abs(got.speed! - p.speed!)).toBeLessThanOrEqual(0.125);
+      expect(got.at).toBe(p.at);
+    }
+  });
+
+  it("a first sync in binary still fits 150 KB, and vehicles carry their number", () => {
+    const rows = rowsFor(296);
+    const out = shapeSync(rows, T0);
+    expect(out.changes.vehicles[0].n).toBe(1);
+    expect(gzipSync(encodeSyncFrame(out, numberedPositions(rows.positions))).byteLength).toBeLessThanOrEqual(50 * 1024);
   });
 });
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SaveNote, useOutbox } from "@/components/OutboxStatus";
 import { newId, type Outcome } from "@/lib/outbox";
+import { BINARY_TYPE, encodeDriverPoint, fixAgeSec, worthSending } from "@/lib/position-codec";
 import { formatAge } from "@/lib/time";
 
 const SEND_EVERY_MS = 15_000;
@@ -33,8 +34,9 @@ export function DriveClient({
   const [gps, setGps] = useState<Gps>("waiting");
   const [sentAt, setSentAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const latest = useRef<{ lat: number; lon: number; speed: number | null; at: number } | null>(null);
+  const latest = useRef<{ lat: number; lon: number; speed: number | null; at: number; fixAt: number } | null>(null);
   const lastPosted = useRef(0);
+  const lastSent = useRef<{ lat: number; lon: number; sentAt: number } | null>(null);
 
   async function run(kind: string, payload: unknown) {
     setBusy(true);
@@ -44,23 +46,36 @@ export function DriveClient({
 
   // While a trip is open and this screen is open: read the GPS, send the newest point
   // about every 15 seconds, and keep the display awake. Positions are never queued: a
-  // point that could not be sent is simply replaced by the next one.
+  // point that could not be sent is simply replaced by the next one. Standing still, one
+  // point a minute is enough (worthSending). The point goes as 8 bytes of binary; an older
+  // server that refuses it (400) gets JSON for the rest of the trip.
   const tripId = trip?.id ?? null;
   useEffect(() => {
     if (!tripId) return;
     let alive = true;
+    let json = false;
+    const send = (point: NonNullable<typeof latest.current>) =>
+      fetch("/api/position", {
+        method: "POST",
+        headers: { "content-type": json ? "application/json" : BINARY_TYPE },
+        body: json
+          ? JSON.stringify({ lat: point.lat, lon: point.lon, speed: point.speed })
+          : encodeDriverPoint({ lat: point.lat, lon: point.lon, speed: point.speed, ageSec: fixAgeSec(point.fixAt, Date.now()) }),
+      });
     const post = async () => {
       const point = latest.current;
       if (!point || point.at <= lastPosted.current) return;
+      if (!worthSending(lastSent.current, point, Date.now())) return;
       lastPosted.current = point.at;
       try {
-        const response = await fetch("/api/position", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ lat: point.lat, lon: point.lon, speed: point.speed }),
-        });
+        let response = await send(point);
+        if (response.status === 400 && !json) {
+          json = true;
+          response = await send(point);
+        }
         if (!alive) return;
         if (response.ok) {
+          lastSent.current = { lat: point.lat, lon: point.lon, sentAt: Date.now() };
           setGps("sending");
           setSentAt(Date.now());
         }
@@ -76,7 +91,7 @@ export function DriveClient({
       watch = navigator.geolocation.watchPosition(
         (p) => {
           const first = latest.current === null;
-          latest.current = { lat: p.coords.latitude, lon: p.coords.longitude, speed: p.coords.speed, at: Date.now() };
+          latest.current = { lat: p.coords.latitude, lon: p.coords.longitude, speed: p.coords.speed, at: Date.now(), fixAt: p.timestamp };
           if (first) void post();
         },
         (error) => {
@@ -110,6 +125,7 @@ export function DriveClient({
       document.removeEventListener("visibilitychange", wake);
       void lock?.release().catch(() => {});
       latest.current = null;
+      lastSent.current = null;
     };
   }, [tripId]);
 

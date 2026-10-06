@@ -2,14 +2,20 @@
 // position that waited offline is stale, and a stale point is worse than none.
 // Only the vehicle's own driver, only during an open trip. One row per vehicle,
 // overwritten. Coordinates are never logged.
+// The body is JSON {lat, lon, speed}, or 7–8 bytes of application/octet-stream from
+// src/lib/position-codec.ts, which also says how old the GPS fix is (answered 204).
 import { offRouteStep } from "@/lib/booking-rules";
 import { getPlace } from "@/lib/places";
 import { distanceFromRoute } from "@/lib/planner";
 import { prisma } from "@/lib/prisma";
 import { canWritePosition } from "@/lib/rider-rules";
 import { getCurrentUser } from "@/lib/session";
+import { CodecError, decodeDriverPoint, sentBinary } from "@/lib/position-codec";
 
 export const dynamic = "force-dynamic";
+
+/** A fix older than this is still stored, but stamped as this old at most. */
+const MAX_FIX_AGE_S = 60;
 
 const inRange = (n: unknown, min: number, max: number): n is number =>
   typeof n === "number" && Number.isFinite(n) && n >= min && n <= max;
@@ -18,11 +24,20 @@ export async function POST(request: Request): Promise<Response> {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "signed_out" }, { status: 401 });
 
+  const binary = sentBinary(request);
   let body: { lat?: unknown; lon?: unknown; speed?: unknown };
+  // How old the phone's GPS fix was when it was sent (binary only), so `at` is the fix's time.
+  let fixAgeMs = 0;
   try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "bad_json" }, { status: 400 });
+    if (binary) {
+      const point = decodeDriverPoint(new Uint8Array(await request.arrayBuffer()));
+      body = point;
+      fixAgeMs = Math.min(point.ageSec, MAX_FIX_AGE_S) * 1000;
+    } else {
+      body = await request.json();
+    }
+  } catch (error) {
+    return Response.json({ error: error instanceof CodecError ? "bad_body" : "bad_json" }, { status: 400 });
   }
   if (!inRange(body.lat, -90, 90) || !inRange(body.lon, -180, 180)) {
     return Response.json({ error: "bad_position" }, { status: 400 });
@@ -39,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
   const allowed = canWritePosition({ actorId: user.id, vehicleDriverId: vehicle?.driverId ?? null, hasOpenTrip: trip !== null });
   if (allowed !== "ok" || !vehicle) return Response.json({ error: allowed }, { status: 409 });
 
-  const data = { lat: body.lat, lon: body.lon, speed, at: new Date() };
+  const data = { lat: body.lat, lon: body.lon, speed, at: new Date(Date.now() - fixAgeMs) };
   await prisma.vehiclePosition.upsert({ where: { vehicleId: vehicle.id }, update: data, create: { vehicleId: vehicle.id, ...data } });
 
   // Off route: more than 500 m from the route line for two minutes tells every rider
@@ -60,5 +75,5 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
   }
-  return Response.json({ ok: true });
+  return binary ? new Response(null, { status: 204 }) : Response.json({ ok: true });
 }

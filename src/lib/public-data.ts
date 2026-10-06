@@ -7,6 +7,8 @@ import type { VehicleType } from "@/lib/driver-rules";
 export type SyncRoute = { id: string; driverId: string; name: string; isDefault: boolean; stops: string[] };
 export type SyncVehicle = {
   id: string;
+  /** The vehicle's small number: how the binary sync names it (position-codec.ts). */
+  n?: number;
   driverId: string;
   /** First name only. */
   driverName: string;
