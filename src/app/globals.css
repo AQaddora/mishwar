@@ -8,6 +8,8 @@
   --danger: #C62828; --pending: #8A6D00;
   /* Drawn on the map. The map tiles are always light, so this does not flip in dark mode. */
   --map-ink: #1C1C1E; --map-paper: #FFFFFF; --map-mute: #E5E5EA;
+  /* The rider's own position ("you are here"): the blue every phone map uses. */
+  --map-me: #0A6CDB;
   /* Fixed sizes. The tab bar is this tall plus the home-indicator inset. */
   --tab-bar-height: 49px;
   --tab-bar-space: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
@@ -133,6 +135,23 @@
   background: var(--map-paper);
   border-color: var(--map-ink);
   color: var(--map-ink);
+}
+/* "You are here" (MapView with locate): a dot with a white ring, and how sure the phone is. */
+.map-me {
+  fill: var(--map-me);
+  fill-opacity: 1;
+  stroke: var(--map-paper);
+  stroke-width: 3;
+}
+.map-me-old {
+  fill: var(--text-muted);
+}
+.map-me-accuracy {
+  fill: var(--map-me);
+  fill-opacity: 0.12;
+  stroke: var(--map-me);
+  stroke-width: 1;
+  stroke-opacity: 0.4;
 }
 /* Everything outside the Gaza Strip on the map (see MapView). */
 .map-mask {
