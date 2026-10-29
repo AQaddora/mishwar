@@ -1,4 +1,6 @@
 "use client";
+// «طلب خاص»: from, to, day, time, seats and a note, checked with the shared request rules
+// and sent through the outbox (request.create).
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

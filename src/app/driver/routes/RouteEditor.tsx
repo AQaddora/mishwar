@@ -1,4 +1,7 @@
 "use client";
+// Build or edit one route: a name and an ordered list of stops picked from the OpenStreetMap
+// places, shown on a map preview. Saved through the outbox (route.save); a non-default route
+// can be deleted (route.delete).
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";

@@ -1,3 +1,5 @@
+// The one way server code learns who is asking: getCurrentUser(), a small view of the
+// Auth.js session (id, name, phone, role). Server only.
 import { auth } from "@/lib/auth";
 import type { Role } from "@/lib/role";
 

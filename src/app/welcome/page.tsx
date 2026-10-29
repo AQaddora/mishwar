@@ -1,3 +1,5 @@
+// First login only: pick rider or driver and give a phone number. A user who already has
+// a role is sent on to their home.
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { WelcomeForm } from "./WelcomeForm";

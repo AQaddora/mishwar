@@ -1,4 +1,7 @@
 "use client";
+// The week, Saturday first: for each day, working or not, hours, and which route. Saved
+// through the outbox (schedule.save); the server cancels the bookings the change makes
+// impossible and the driver is told how many.
 
 import { useState } from "react";
 import { SaveNote, useOutbox } from "@/components/OutboxStatus";

@@ -1,4 +1,7 @@
 "use client";
+// The vehicle screen's forms: type and seats (vehicle.save), photos (compressed on the
+// phone, queued for Wi-Fi or «ابعت الصور هلأ», removed with photo.remove) and maintenance
+// dates (maintenance.set). Every write goes through the outbox.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";

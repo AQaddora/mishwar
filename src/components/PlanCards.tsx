@@ -1,4 +1,6 @@
 "use client";
+// The planner's result cards: each option with its legs and its arrival «تقريباً», the
+// booking sheet, and the option drawn on the map.
 
 import { ratingText } from "@/lib/rating-rules";
 import Link from "next/link";

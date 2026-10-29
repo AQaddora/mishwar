@@ -1,3 +1,5 @@
+// The two roles and the phone-number rule, as pure functions shared by the welcome form,
+// its server action and the tests.
 export type Role = "rider" | "driver";
 
 // The role is chosen once, on /welcome, and never changes.

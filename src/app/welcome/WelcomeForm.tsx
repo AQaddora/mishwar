@@ -1,4 +1,6 @@
 "use client";
+// The role and phone form of /welcome: two large role cards and one phone field, posted to
+// the chooseRole server action.
 
 import { useActionState } from "react";
 import { chooseRole } from "./actions";

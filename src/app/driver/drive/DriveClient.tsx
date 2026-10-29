@@ -1,4 +1,8 @@
 "use client";
+// The driving screen's client half: starts and ends the trip through the outbox, watches the
+// phone's GPS while a trip is open and posts each point to POST /api/position (never queued:
+// a stale point is worse than none), keeps the display awake with the Wake Lock API, and says
+// plainly when GPS is refused, missing or the phone is offline.
 
 import { useEffect, useRef, useState } from "react";
 import { SaveNote, useOutbox } from "@/components/OutboxStatus";

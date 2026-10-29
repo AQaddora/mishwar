@@ -1,3 +1,4 @@
+// «حسابي»: who is signed in (name, role, phone) and the sign-out button.
 import { redirect } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { signOut } from "@/lib/auth";

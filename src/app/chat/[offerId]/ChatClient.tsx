@@ -1,4 +1,7 @@
 "use client";
+// One offer's chat thread: the messages in the phone's copy plus the ones still waiting in
+// the outbox, a refresh every 10 seconds while the screen is open, and sending through the
+// outbox so a message typed with no network goes out later.
 
 import { useEffect, useRef, useState } from "react";
 import { DataAge } from "@/components/DataAge";

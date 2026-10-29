@@ -1,4 +1,6 @@
 "use client";
+// The bottom tab bar, rendered once in the root layout: two tabs for a guest, four for a
+// rider, four for a driver. Padded for the home indicator; the active tab follows the path.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
