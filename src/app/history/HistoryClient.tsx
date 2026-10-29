@@ -1,4 +1,6 @@
 "use client";
+// «رحلات سابقة»: finished trips for either role, with the star sheet. The list comes from
+// GET /api/history and the last answer is kept on the phone per account.
 
 import { useCallback, useEffect, useState } from "react";
 import { DataAge } from "@/components/DataAge";

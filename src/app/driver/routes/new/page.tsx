@@ -1,3 +1,4 @@
+// A new route, built with the RouteEditor.
 import { Screen } from "@/components/Screen";
 import { pickerPlaces } from "@/lib/places";
 import { RouteEditor } from "../RouteEditor";

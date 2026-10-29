@@ -1,3 +1,4 @@
+// «أيام وساعات الشغل»: the weekly schedule, one row per day, Saturday first.
 import Link from "next/link";
 import { EmptyState, Screen } from "@/components/Screen";
 import type { ScheduleDayInput } from "@/lib/driver-rules";

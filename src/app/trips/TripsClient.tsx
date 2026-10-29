@@ -1,4 +1,6 @@
 "use client";
+// «رحلاتي» and its pieces: the rider's bookings, where the vehicle is now, cancelling, and
+// the location-consent flow. Everything is drawn from the phone's own copy.
 
 import Link from "next/link";
 import { RatingNotices } from "@/components/RatingNotices";

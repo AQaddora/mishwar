@@ -1,3 +1,7 @@
+// Auth.js (next-auth v5) with the Prisma adapter and database sessions. Google is the only
+// provider, and it is registered only when both keys are set, so QA and local work run with
+// no Google project at all. The session callback hands the app the user's id, role and phone
+// and never the session token. Server only.
 import { randomBytes } from "node:crypto";
 import NextAuth, { type DefaultSession } from "next-auth";
 import type { Provider } from "next-auth/providers";

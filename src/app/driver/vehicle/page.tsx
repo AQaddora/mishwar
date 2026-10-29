@@ -1,3 +1,5 @@
+// «سيارتي»: the vehicle, its photos and its maintenance dates. ?photos=now downloads the
+// photos at once.
 import { Screen } from "@/components/Screen";
 import { getCurrentUser } from "@/lib/session";
 import { gazaNow } from "@/lib/time";

@@ -1,3 +1,5 @@
+// Home. A signed-in user with no role yet goes to /welcome and a driver to /driver;
+// everyone else gets the rider home with the map. ?photos=now downloads the photos.
 import { redirect } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { getCurrentUser } from "@/lib/session";

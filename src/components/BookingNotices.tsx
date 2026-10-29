@@ -1,4 +1,6 @@
 "use client";
+// What a rider is told about his bookings, and the location-sharing flow: the consent
+// sheet and sending his point while sharing is on.
 
 import { useEffect, useState } from "react";
 import { useOutbox } from "@/components/OutboxStatus";

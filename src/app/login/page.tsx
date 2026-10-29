@@ -1,3 +1,5 @@
+// «كمّل مع Google»: the one login screen. The button shows only when Google is configured
+// (src/lib/auth.ts). An already signed-in user is sent on.
 import { redirect } from "next/navigation";
 import { BackLink } from "@/components/Screen";
 import { googleEnabled } from "@/lib/auth";

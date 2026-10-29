@@ -1,4 +1,6 @@
 "use server";
+// chooseRole(): the first-login form. The role is set once and never changes; the phone
+// must be a Palestinian mobile number (src/lib/role.ts).
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";

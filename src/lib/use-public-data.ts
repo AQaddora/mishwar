@@ -1,4 +1,7 @@
 "use client";
+// usePublicData(): the hook every data screen reads. It serves the phone's own copy first,
+// pulls GET /api/sync in the background and every 30 seconds while the screen is open, and
+// says how old the data is and whether the last pull failed (offline-first-pwa skill).
 
 import { useEffect, useState } from "react";
 import { EMPTY_PUBLIC_DATA, type PublicData } from "@/lib/public-data";
